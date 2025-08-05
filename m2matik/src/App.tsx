@@ -1,17 +1,22 @@
-import React from "react";
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import FrontPage from './pages/FrontPage';
+import House from './pages/House';
+import Apartment from './pages/Apartment';
+import Addition from './pages/Addition';
+import Renovation from './pages/Renovation';
+import NewHouse from './pages/NewHouse';
 
 export default function App() {
   return (
-    <div className="flex items-center justify-center h-screen bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-md text-center">
-        <h1 className="text-3xl font-bold mb-4 text-gray-800">M²matik</h1>
-        <p className="text-gray-600 mb-6">
-          Få et hurtigt prisoverslag på dit byggeprojekt
-        </p>
-        <button className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800">
-          Start beregning
-        </button>
-      </div>
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={<FrontPage />} />
+        <Route path="/house" element={<House />} />
+        <Route path="/apartment" element={<Apartment />} />
+        <Route path="/house/addition" element={<Addition />} />
+        <Route path="/house/renovation" element={<Renovation />} />
+        <Route path="/house/newhouse" element={<NewHouse />} />
+      </Routes>
+    </Router>
   );
 }
