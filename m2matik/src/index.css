@@ -2,9 +2,30 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Dark mode base (class strategy) */
+body.dark {
+  background-color: #111827; /* gray-900 */
+  color: #f3f4f6; /* gray-100 */
+}
+
+.dark .card-surface {
+  background-color: #1f2937; /* gray-800 */
+  border-color: #374151; /* gray-700 */
+  color: #f3f4f6; /* gray-100 */
+}
+
+.dark .card-surface-soft {
+  background-color: rgba(31, 41, 55, 0.6); /* gray-800/60 */
+}
 
 input[type="range"] {
   -webkit-appearance: none;
+
+  /* Safe area helper for iOS bottom inset */
+  .pb-safe-bottom {
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+  }
+  appearance: none;
   width: 100%;
   height: 6px;
   background: #ddd;
@@ -48,7 +69,6 @@ input[type="range"]::-webkit-slider-thumb {
 input[type="range"]::-moz-range-thumb {
   transition: left 0.3s ease, transform 0.2s ease;
 }
-
 
 .price-indicator-slider {
   pointer-events: none;

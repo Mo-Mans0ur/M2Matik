@@ -1,54 +1,56 @@
 // m2matik/src/pages/FrontPage.tsx
 
-import {useNavigate } from 'react-router-dom';
-import {useEffect, useState} from 'react';
-import { loadProjectMeta, saveProjectMeta } from '../lib/storage';
-import type { PropertyType, ProjectMeta } from '../lib/storage';
-
+import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { loadProjectMeta, saveProjectMeta } from "../lib/storage";
+import type { PropertyType, ProjectMeta } from "../lib/storage";
 
 export default function FrontPage() {
-// constants
-    const navigate = useNavigate();
+  // constants
+  const navigate = useNavigate();
 
-    const [propertyType, setPropertyType] = useState<PropertyType>("house");
-    const [sizeM2, setSizeM2] = useState<number>(0);
-    const [basement, setBasement] = useState<boolean>(false);
-    const [firstFloor, setFirstFloor] = useState<boolean>(false);
+  const [propertyType, setPropertyType] = useState<PropertyType>("house");
+  const [sizeM2, setSizeM2] = useState<number>(0);
+  const [basement, setBasement] = useState<boolean>(false);
+  const [firstFloor, setFirstFloor] = useState<boolean>(false);
 
-    // prefill hvis der findes data i localStorage
-    useEffect(() => {
-        const prev = loadProjectMeta();
-        if (prev) {
-            setPropertyType(prev.propertyType);
-            setSizeM2(prev.sizeM2);
-            setBasement(prev.basement);
-            setFirstFloor(prev.firstFloor);
-        }
-    }, []);
-
-    const canContinue = sizeM2 > 0;
-
-    const onStart = () => {
-        const payload: ProjectMeta = {
-            propertyType,
-            sizeM2,
-            basement,
-            firstFloor,
-            createdAt: new Date().toISOString(),
-        };
-        saveProjectMeta(payload);
-        navigate(`/${propertyType}/renovation`);
+  // prefill hvis der findes data i localStorage
+  useEffect(() => {
+    const prev = loadProjectMeta();
+    if (prev) {
+      setPropertyType(prev.propertyType);
+      setSizeM2(prev.sizeM2);
+      setBasement(prev.basement);
+      setFirstFloor(prev.firstFloor);
     }
+  }, []);
 
+  const canContinue = sizeM2 > 0;
 
-    return (
-         <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4">
-      <div className="w-full max-w-2xl bg-white rounded-2xl shadow p-6 space-y-6">
-        <h1 className="text-3xl font-bold text-center">Start beregning</h1>
+  const onStart = () => {
+    const payload: ProjectMeta = {
+      propertyType,
+      sizeM2,
+      basement,
+      firstFloor,
+      createdAt: new Date().toISOString(),
+    };
+    saveProjectMeta(payload);
+    navigate(`/${propertyType}/renovation`);
+  };
 
-        <div className="grid md:grid-cols-2 gap-4">
+  return (
+    <div className="min-h-screen bg-gray-100 flex items-center justify-center px-3 sm:px-4 py-6">
+      <div className="w-full max-w-2xl bg-white rounded-2xl shadow p-5 sm:p-6 space-y-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-center">
+          Start beregning
+        </h1>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <label className="flex flex-col gap-1">
-            <span className="text-sm text-gray-600">Ejendomstype</span>
+            <span className="text-xs sm:text-sm text-gray-600">
+              Ejendomstype
+            </span>
             <select
               className="border rounded-lg px-3 py-2"
               value={propertyType}
@@ -61,7 +63,9 @@ export default function FrontPage() {
           </label>
 
           <label className="flex flex-col gap-1">
-            <span className="text-sm text-gray-600">Størrelse (m²)</span>
+            <span className="text-xs sm:text-sm text-gray-600">
+              Størrelse (m²)
+            </span>
             <input
               type="number"
               min={1}
@@ -72,7 +76,7 @@ export default function FrontPage() {
             />
           </label>
 
-          <label className="inline-flex items-center gap-2">
+          <label className="inline-flex items-center gap-2 text-sm">
             <input
               type="checkbox"
               className="w-5 h-5 accent-blue-600"
@@ -82,7 +86,7 @@ export default function FrontPage() {
             Kælder
           </label>
 
-          <label className="inline-flex items-center gap-2">
+          <label className="inline-flex items-center gap-2 text-sm">
             <input
               type="checkbox"
               className="w-5 h-5 accent-blue-600"
@@ -93,14 +97,18 @@ export default function FrontPage() {
           </label>
         </div>
 
-        <div className="flex gap-3 justify-end">
+        <div className="flex gap-3 justify-end pt-2">
           <button
             onClick={onStart}
             disabled={!canContinue}
-            className={`px-5 py-2 rounded-lg text-white shadow
-              ${canContinue ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-300 cursor-not-allowed"}`}
+            className={`px-5 py-2 rounded-lg text-white shadow text-sm sm:text-base
+              ${
+                canContinue
+                  ? "bg-blue-600 hover:bg-blue-700"
+                  : "bg-gray-300 cursor-not-allowed"
+              }`}
           >
-            Fortsæt til 
+            Fortsæt til
           </button>
         </div>
       </div>
