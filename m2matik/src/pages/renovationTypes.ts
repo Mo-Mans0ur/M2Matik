@@ -49,7 +49,7 @@ export type ItemDøreVinduer = ItemBase & {
   count: number;
   // Nye felter
   quality?: 0 | 1 | 2; // IKEA/Hack/Snedker
-  sizeScale?: number; // 0-100
+  sizeScale?: number; // 0-100 (UI slider). Mappes til bredde i cm: 50 + sizeScale (50–150 cm)
 };
 
 export type ItemTerrasse = ItemBase & {

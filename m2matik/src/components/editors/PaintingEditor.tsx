@@ -18,13 +18,23 @@ export const PaintingEditor: React.FC<Props> = ({ item, update }) => {
         max={100}
         step={1}
         value={item.coveragePercent ?? 0}
-        onChange={(e) => update("coveragePercent", parseInt(e.target.value, 10))}
+        onChange={(e) =>
+          update("coveragePercent", parseInt(e.target.value, 10))
+        }
         className="w-full accent-blue-500 h-2 rounded-lg appearance-none cursor-pointer"
         aria-label="Maledækning i %"
         title="Maledækning i %"
       />
       <div className="h-px bg-gray-200 my-2" />
-      <label className="block text-sm text-gray-600">Kvalitet ({item.paintQuality === 0 ? "IKEA" : item.paintQuality === 1 ? "Hack" : "Snedker"})</label>
+      <label className="block text-sm text-gray-600">
+        Kvalitet (
+        {item.paintQuality === 0
+          ? "IKEA"
+          : item.paintQuality === 1
+          ? "Hack"
+          : "Snedker"}
+        )
+      </label>
       <input
         type="range"
         min={0}

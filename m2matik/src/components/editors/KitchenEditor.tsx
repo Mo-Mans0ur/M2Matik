@@ -31,7 +31,13 @@ export const KitchenEditor: React.FC<Props> = ({ item, update }) => (
     <div className="h-px bg-gray-200 my-2" />
     <div className="space-y-1">
       <label className="block text-sm text-gray-600">
-        Kvalitet: {item.quality ?? 0} ({(item.quality ?? 0) === 0 ? "IKEA" : (item.quality ?? 0) === 1 ? "Hack" : "Snedker"})
+        Kvalitet: {item.quality ?? 0} (
+        {(item.quality ?? 0) === 0
+          ? "IKEA"
+          : (item.quality ?? 0) === 1
+          ? "Hack"
+          : "Snedker"}
+        )
       </label>
       <input
         type="range"
@@ -39,7 +45,9 @@ export const KitchenEditor: React.FC<Props> = ({ item, update }) => (
         max={2}
         step={1}
         value={item.quality ?? 0}
-        onChange={(e) => update("quality", parseInt(e.target.value, 10) as 0 | 1 | 2)}
+        onChange={(e) =>
+          update("quality", parseInt(e.target.value, 10) as 0 | 1 | 2)
+        }
         className="w-full accent-blue-500 h-2 rounded-lg appearance-none cursor-pointer"
         aria-label="Køkkenkvalitet"
         title="Køkkenkvalitet"

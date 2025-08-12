@@ -309,16 +309,19 @@ export default function RenovationWithList() {
 
     switch (it.typeId) {
       case "maling": {
-  const qFactor = it.paintQuality === 0 ? 1 : it.paintQuality === 1 ? 1.2 : 1.5;
-  const coverage = Math.max(0, Math.min(100, (it as any).coveragePercent ?? 100)) / 100;
-  price += Math.round(AREA * perM2.maling * qFactor * coverage);
+        const qFactor =
+          it.paintQuality === 0 ? 1 : it.paintQuality === 1 ? 1.2 : 1.5;
+        const coverage =
+          Math.max(0, Math.min(100, (it as any).coveragePercent ?? 100)) / 100;
+        price += Math.round(AREA * perM2.maling * qFactor * coverage);
         if (it.extras.træværk) price += 2000;
         if (it.extras.paneler) price += 1500;
         if (it.extras.stuk) price += 2500;
         break;
       }
       case "gulv": {
-  const floorFactor = it.floorQuality === 0 ? 1 : it.floorQuality === 1 ? 1.2 : 1.5;
+        const floorFactor =
+          it.floorQuality === 0 ? 1 : it.floorQuality === 1 ? 1.2 : 1.5;
         price += Math.round(AREA * perM2.gulv * floorFactor);
         if (it.hasFloorHeating) price += 5000;
         break;
@@ -365,11 +368,12 @@ export default function RenovationWithList() {
               : doorWindowBase.extraForNewHoleWindow
             : 0;
         // Juster for kvalitet og størrelse (0-100) som ±20% hver
-  const q = (it as any).quality ?? 1; // 0,1,2
-  const s = (it as any).sizeScale ?? 50;
-  const qualityFactor = q === 0 ? 1 : q === 1 ? 1.15 : 1.35;
+        const q = (it as any).quality ?? 1; // 0,1,2
+        const s = (it as any).sizeScale ?? 50;
+        const qualityFactor = q === 0 ? 1 : q === 1 ? 1.15 : 1.35;
         const sizeFactor = 1 + ((s - 50) / 50) * 0.2; // 0..100 -> 0.8..1.2
-        price += Math.round((unit + holeExtra) * qualityFactor * sizeFactor) *
+        price +=
+          Math.round((unit + holeExtra) * qualityFactor * sizeFactor) *
           Math.max(1, doorWin.count);
         break;
       }
@@ -412,14 +416,14 @@ export default function RenovationWithList() {
         break;
       }
       case "walls": {
-  // Nedrivning
-  if ((it as any).demoLet) price += 7000;
-  if ((it as any).demoBærende) price += 15000;
-  if ((it as any).demoIndvendig) price += 6000;
-  // Nye vægge
-  if ((it as any).nyeVægge) price += 8000;
-  if ((it as any).nyLet) price += 9000;
-  if ((it as any).nyBærende) price += 18000;
+        // Nedrivning
+        if ((it as any).demoLet) price += 7000;
+        if ((it as any).demoBærende) price += 15000;
+        if ((it as any).demoIndvendig) price += 6000;
+        // Nye vægge
+        if ((it as any).nyeVægge) price += 8000;
+        if ((it as any).nyLet) price += 9000;
+        if ((it as any).nyBærende) price += 18000;
         if (price === 0) price += perM2.walls; // baseline badge/fallback
         break;
       }

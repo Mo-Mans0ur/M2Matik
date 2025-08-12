@@ -7,7 +7,15 @@ interface Props {
 }
 export const FloorEditor: React.FC<Props> = ({ item, update }) => (
   <div className="space-y-2">
-    <label className="block text-sm text-gray-600">Kvalitet ({item.floorQuality === 0 ? "IKEA" : item.floorQuality === 1 ? "Hack" : "Snedker"})</label>
+    <label className="block text-sm text-gray-600">
+      Kvalitet (
+      {item.floorQuality === 0
+        ? "IKEA"
+        : item.floorQuality === 1
+        ? "Hack"
+        : "Snedker"}
+      )
+    </label>
     <input
       type="range"
       min={0}

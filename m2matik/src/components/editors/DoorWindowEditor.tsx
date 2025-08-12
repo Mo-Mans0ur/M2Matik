@@ -78,7 +78,13 @@ export const DoorWindowEditor: React.FC<Props> = ({ item, update }) => {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t">
         <div>
           <label className="block text-xs text-gray-600">
-            Kvalitet ({(item.quality ?? 1) === 0 ? "IKEA" : (item.quality ?? 1) === 1 ? "Hack" : "Snedker"})
+            Kvalitet (
+            {(item.quality ?? 1) === 0
+              ? "IKEA"
+              : (item.quality ?? 1) === 1
+              ? "Hack"
+              : "Snedker"}
+            )
           </label>
           <input
             type="range"
@@ -86,7 +92,9 @@ export const DoorWindowEditor: React.FC<Props> = ({ item, update }) => {
             max={2}
             step={1}
             value={item.quality ?? 1}
-            onChange={(e) => update("quality", parseInt(e.target.value, 10) as 0 | 1 | 2)}
+            onChange={(e) =>
+              update("quality", parseInt(e.target.value, 10) as 0 | 1 | 2)
+            }
             className="w-full accent-blue-500 h-2 rounded-lg appearance-none cursor-pointer"
             aria-label="Kvalitet"
             title="Kvalitet"
@@ -99,7 +107,7 @@ export const DoorWindowEditor: React.FC<Props> = ({ item, update }) => {
         </div>
         <div>
           <label className="block text-xs text-gray-600">
-            Størrelse: {item.sizeScale ?? 0}
+            Størrelse (cm): {50 + (item.sizeScale ?? 0)} cm
           </label>
           <input
             type="range"
@@ -109,9 +117,14 @@ export const DoorWindowEditor: React.FC<Props> = ({ item, update }) => {
             value={item.sizeScale ?? 0}
             onChange={(e) => update("sizeScale", parseInt(e.target.value, 10))}
             className="w-full accent-blue-500 h-2 rounded-lg appearance-none cursor-pointer"
-            aria-label="Størrelse"
-            title="Størrelse"
+            aria-label="Størrelse (cm)"
+            title="Størrelse (cm)"
           />
+          <div className="relative h-4 mt-1 text-[11px] text-gray-500 select-none">
+            <span className="absolute left-0">50 cm</span>
+            <span className="absolute left-1/2 -translate-x-1/2">100 cm</span>
+            <span className="absolute right-0">150 cm</span>
+          </div>
         </div>
       </div>
     </div>
