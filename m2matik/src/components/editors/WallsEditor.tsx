@@ -6,37 +6,67 @@ interface Props {
   update: (key: string, val: unknown) => void;
 }
 export const WallsEditor: React.FC<Props> = ({ item, update }) => (
-  <div className="space-y-2">
-    <div className="text-s font-medium">Nedrivning:</div>
-    <div className="flex flex-col gap-1 text-s">
-      {(
-        [
-          { key: "let", label: "Let skillevæg" },
-          { key: "bærende", label: "Bærende væg" },
-        ] as const
-      ).map((opt) => (
-        <label key={opt.key} className="inline-flex items-center gap-2">
-          <input
-            type="radio"
-            name={`wallDemoType_${item.uid}`}
-            value={opt.key}
-            checked={item.demo === opt.key}
-            onChange={() => update("demo", opt.key)}
-            className="accent-blue-500"
-          />
-          {opt.label}
-        </label>
-      ))}
+  <div className="space-y-3 text-sm">
+    <div className="font-medium">Nedrivning</div>
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+      <label className="inline-flex items-center gap-2">
+        <input
+          type="checkbox"
+          className="accent-blue-500"
+          checked={!!item.demoLet}
+          onChange={(e) => update("demoLet", e.target.checked)}
+        />
+        Let skillevæg
+      </label>
+      <label className="inline-flex items-center gap-2">
+        <input
+          type="checkbox"
+          className="accent-blue-500"
+          checked={!!item.demoBærende}
+          onChange={(e) => update("demoBærende", e.target.checked)}
+        />
+        Bærende væg
+      </label>
+      <label className="inline-flex items-center gap-2">
+        <input
+          type="checkbox"
+          className="accent-blue-500"
+          checked={!!item.demoIndvendig}
+          onChange={(e) => update("demoIndvendig", e.target.checked)}
+        />
+        Nedrivning af indvendig væg
+      </label>
     </div>
-    <label className="inline-flex items-center gap-2 text-s">
-      <input
-        type="checkbox"
-        checked={item.newWall}
-        onChange={(e) => update("newWall", e.target.checked)}
-        className="accent-blue-500"
-      />
-      Nye vægge
-    </label>
+    <div className="font-medium pt-2">Nye vægge</div>
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+      <label className="inline-flex items-center gap-2">
+        <input
+          type="checkbox"
+          className="accent-blue-500"
+          checked={!!item.nyeVægge}
+          onChange={(e) => update("nyeVægge", e.target.checked)}
+        />
+        Nye vægge (generelt)
+      </label>
+      <label className="inline-flex items-center gap-2">
+        <input
+          type="checkbox"
+          className="accent-blue-500"
+          checked={!!item.nyLet}
+          onChange={(e) => update("nyLet", e.target.checked)}
+        />
+        Ny letskillevæg
+      </label>
+      <label className="inline-flex items-center gap-2">
+        <input
+          type="checkbox"
+          className="accent-blue-500"
+          checked={!!item.nyBærende}
+          onChange={(e) => update("nyBærende", e.target.checked)}
+        />
+        Ny bærende væg
+      </label>
+    </div>
   </div>
 );
 export default WallsEditor;

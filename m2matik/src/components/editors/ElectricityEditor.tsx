@@ -1,5 +1,6 @@
 import React from "react";
 import type { ItemEl } from "../../pages/renovationTypes";
+import InfoTooltip from "../InfoTooltip";
 
 interface Props {
   item: ItemEl;
@@ -7,8 +8,9 @@ interface Props {
 }
 export const ElectricityEditor: React.FC<Props> = ({ item, update }) => (
   <div className="space-y-2">
-    <label className="block text-sm text-gray-600">
-      Antal stikkontakter: {item.outletCount}
+    <label className="block text-sm text-gray-600 flex items-center gap-2">
+      <span>Antal afbrydere + udtag: {item.outletCount}</span>
+      <InfoTooltip text="Et udtag er et tilslutningspunkt i væg/loft til fx lampe eller stikkontakt." />
     </label>
     <input
       title="Antal stikkontakter"
@@ -29,6 +31,15 @@ export const ElectricityEditor: React.FC<Props> = ({ item, update }) => (
           onChange={(e) => update("newPanel", e.target.checked)}
         />
         Ny tavle
+      </label>
+      <label className="inline-flex items-center gap-2">
+        <input
+          type="checkbox"
+          className="w-4 h-4 accent-blue-500"
+          checked={!!item.evCharger}
+          onChange={(e) => update("evCharger", e.target.checked)}
+        />
+        Bil lader
       </label>
       <label className="inline-flex items-center gap-2">
         <input

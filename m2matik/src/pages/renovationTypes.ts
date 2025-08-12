@@ -25,6 +25,8 @@ export type ItemMaling = ItemBase & {
   typeId: "maling";
   paintQuality: 0 | 1;
   extras: { træværk?: boolean; paneler?: boolean; stuk?: boolean };
+  // procent af boligen der skal males (0-100)
+  coveragePercent?: number;
 };
 
 export type ItemGulv = ItemBase & {
@@ -45,6 +47,9 @@ export type ItemDøreVinduer = ItemBase & {
   newInstall: "door" | "window"; // Linje 3
   variant?: "doorWindowReplacement" | "newHole" | "newDoor" | "newWindow"; // legacy
   count: number;
+  // Nye felter
+  quality?: number; // 0-100
+  sizeScale?: number; // 0-100
 };
 
 export type ItemTerrasse = ItemBase & {
@@ -70,8 +75,14 @@ export type ItemFacade = ItemBase & {
 
 export type ItemWalls = ItemBase & {
   typeId: "walls";
-  demo: "" | "let" | "bærende";
-  newWall: boolean;
+  // Nedrivning
+  demoLet?: boolean; // let skillevæg
+  demoBærende?: boolean; // bærende væg
+  demoIndvendig?: boolean; // nedrivning af indvendig væg
+  // Nye vægge
+  nyeVægge?: boolean; // generelt
+  nyLet?: boolean; // ny letskillevæg
+  nyBærende?: boolean; // ny bærende væg
 };
 
 export type ItemHeating = ItemBase & {
@@ -84,11 +95,13 @@ export type ItemEl = ItemBase & {
   outletCount: number;
   newPanel: boolean;
   hiddenRuns: boolean;
+  evCharger?: boolean; // bil lader
 };
 
 export type ItemKitchen = ItemBase & {
   typeId: "køkken";
   placement: "same" | "new";
+  quality?: 0 | 1 | 2; // 0=IKEA, 1=Hack, 2=Snedker
 };
 
 export type AnyItem =

@@ -73,6 +73,42 @@ export const DoorWindowEditor: React.FC<Props> = ({ item, update }) => {
           title="Antal døre eller vinduer"
         />
       </label>
+
+      {/* Kvalitet og Størrelse sliders */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t">
+        <div>
+          <label className="block text-xs text-gray-600">
+            Kvalitet: {item.quality ?? 0}
+          </label>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={1}
+            value={item.quality ?? 0}
+            onChange={(e) => update("quality", parseInt(e.target.value, 10))}
+            className="w-full accent-blue-500 h-2 rounded-lg appearance-none cursor-pointer"
+            aria-label="Kvalitet"
+            title="Kvalitet"
+          />
+        </div>
+        <div>
+          <label className="block text-xs text-gray-600">
+            Størrelse: {item.sizeScale ?? 0}
+          </label>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            step={1}
+            value={item.sizeScale ?? 0}
+            onChange={(e) => update("sizeScale", parseInt(e.target.value, 10))}
+            className="w-full accent-blue-500 h-2 rounded-lg appearance-none cursor-pointer"
+            aria-label="Størrelse"
+            title="Størrelse"
+          />
+        </div>
+      </div>
     </div>
   );
 };

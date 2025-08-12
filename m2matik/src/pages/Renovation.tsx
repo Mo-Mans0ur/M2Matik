@@ -178,6 +178,7 @@ export default function RenovationWithList() {
           label,
           paintQuality: 0,
           extras: {},
+          coveragePercent: 100,
         };
         break;
       case "gulv":
@@ -206,6 +207,8 @@ export default function RenovationWithList() {
           operation: "replacement",
           newInstall: "door",
           count: 1,
+          quality: 50,
+          sizeScale: 50,
         };
         break;
       case "terrasse":
@@ -243,8 +246,12 @@ export default function RenovationWithList() {
           uid: newUID(),
           typeId,
           label,
-          demo: "",
-          newWall: false,
+          demoLet: false,
+          demoBærende: false,
+          demoIndvendig: false,
+          nyeVægge: false,
+          nyLet: false,
+          nyBærende: false,
         };
         break;
       case "heating":
@@ -263,6 +270,7 @@ export default function RenovationWithList() {
           outletCount: 0,
           newPanel: false,
           hiddenRuns: false,
+          evCharger: false,
         };
         break;
       case "køkken":
@@ -271,6 +279,7 @@ export default function RenovationWithList() {
           typeId,
           label,
           placement: "same",
+          quality: 0,
         };
         break;
       default:
@@ -300,8 +309,9 @@ export default function RenovationWithList() {
 
     switch (it.typeId) {
       case "maling": {
-        const qFactor = it.paintQuality === 1 ? 1.2 : 1;
-        price += Math.round(AREA * perM2.maling * qFactor);
+  const qFactor = it.paintQuality === 1 ? 1.2 : 1;
+  const coverage = Math.max(0, Math.min(100, (it as any).coveragePercent ?? 100)) / 100;
+  price += Math.round(AREA * perM2.maling * qFactor * coverage);
         if (it.extras.træværk) price += 2000;
         if (it.extras.paneler) price += 1500;
         if (it.extras.stuk) price += 2500;
@@ -354,8 +364,13 @@ export default function RenovationWithList() {
               ? doorWindowBase.extraForNewHoleDoor
               : doorWindowBase.extraForNewHoleWindow
             : 0;
-        // For nu ignorerer vi forskel i LINJE 3 (nyInstall) i pris, men kunne udvide senere.
-        price += (unit + holeExtra) * Math.max(1, doorWin.count);
+        // Juster for kvalitet og størrelse (0-100) som ±20% hver
+        const q = (it as any).quality ?? 50;
+        const s = (it as any).sizeScale ?? 50;
+        const qualityFactor = 1 + ((q - 50) / 50) * 0.2; // 0..100 -> 0.8..1.2
+        const sizeFactor = 1 + ((s - 50) / 50) * 0.2; // 0..100 -> 0.8..1.2
+        price += Math.round((unit + holeExtra) * qualityFactor * sizeFactor) *
+          Math.max(1, doorWin.count);
         break;
       }
       case "terrasse": {
@@ -397,10 +412,14 @@ export default function RenovationWithList() {
         break;
       }
       case "walls": {
-        // Nedrivning + ny væg
-        if (it.demo === "let") price += 7000;
-        if (it.demo === "bærende") price += 15000;
-        if (it.newWall) price += 12000;
+  // Nedrivning
+  if ((it as any).demoLet) price += 7000;
+  if ((it as any).demoBærende) price += 15000;
+  if ((it as any).demoIndvendig) price += 6000;
+  // Nye vægge
+  if ((it as any).nyeVægge) price += 8000;
+  if ((it as any).nyLet) price += 9000;
+  if ((it as any).nyBærende) price += 18000;
         if (price === 0) price += perM2.walls; // baseline badge/fallback
         break;
       }
@@ -412,12 +431,16 @@ export default function RenovationWithList() {
         let elBase = it.outletCount * 350;
         if (it.newPanel) elBase += 5000;
         if (it.hiddenRuns) elBase += Math.round(elBase * 1.25);
+        if ((it as any).evCharger) elBase += 9000;
         price += Math.max(elBase, 8000); // baseline
         break;
       }
       case "køkken": {
+        const quality = (it as any).quality ?? 0; // 0 IKEA, 1 Hack, 2 Snedker
+        const qualityFactor = quality === 0 ? 1 : quality === 1 ? 1.3 : 1.8;
         price +=
-          kitchenBase + (it.placement === "new" ? kitchenExtraNewPlacement : 0);
+          Math.round(kitchenBase * qualityFactor) +
+          (it.placement === "new" ? kitchenExtraNewPlacement : 0);
         break;
       }
     }
