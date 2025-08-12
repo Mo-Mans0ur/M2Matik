@@ -71,7 +71,7 @@ export default function RenovationWithList() {
     requestAnimationFrame(() => setEntered(true));
   }, []);
 
-  const AREA = meta?.sizeM2 ?? 0;
+  const AREA = meta ? Math.max(60, Math.min(300, meta.sizeM2 || 0)) : 0;
 
   // Kort / muligheder (bruges til UI og "Fra"-pris på kortene)
   const options = [
@@ -228,7 +228,13 @@ export default function RenovationWithList() {
           label,
           roofPitch: 0,
           roofQuality: 0,
-          extras: { saddeltag: false, valm: false, undertag: false, efterisolering: false, kviste: 0 },
+          extras: {
+            saddeltag: false,
+            valm: false,
+            undertag: false,
+            efterisolering: false,
+            kviste: 0,
+          },
         };
         break;
       case "Facade":
@@ -557,7 +563,10 @@ export default function RenovationWithList() {
                   if (!draftMeta) return;
                   const clamped = {
                     ...draftMeta,
-                    sizeM2: Math.max(60, Math.min(300, Number(draftMeta.sizeM2) || 0)),
+                    sizeM2: Math.max(
+                      60,
+                      Math.min(300, Number(draftMeta.sizeM2) || 0)
+                    ),
                     createdAt: draftMeta.createdAt || new Date().toISOString(),
                   };
                   saveProjectMeta(clamped);

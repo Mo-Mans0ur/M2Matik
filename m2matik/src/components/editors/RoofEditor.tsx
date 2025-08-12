@@ -21,9 +21,7 @@ export const RoofEditor: React.FC<Props> = ({ item, update }) => {
     <div className="space-y-4">
       {/* Hældning */}
       <div className="space-y-2">
-        <label className="text-xs font-medium">
-          Hældning: {pitch}°
-        </label>
+        <label className="text-xs font-medium">Hældning: {pitch}°</label>
         <input
           type="range"
           min={0}
@@ -31,7 +29,10 @@ export const RoofEditor: React.FC<Props> = ({ item, update }) => {
           step={1}
           value={pitch}
           onChange={(e) =>
-            update("roofPitch", Math.min(45, Math.max(0, Number(e.target.value))))
+            update(
+              "roofPitch",
+              Math.min(45, Math.max(0, Number(e.target.value)))
+            )
           }
           className="w-full accent-blue-500 h-2 rounded-lg appearance-none cursor-pointer"
           aria-label="Hældning (grader)"
@@ -46,7 +47,8 @@ export const RoofEditor: React.FC<Props> = ({ item, update }) => {
       {/* Kvalitet */}
       <div className="space-y-2">
         <label className="text-xs font-medium">
-          Kvalitet ({q === 0 ? "Tagpap" : q === 1 ? "Betontagsten" : "Vingetagsten"})
+          Kvalitet (
+          {q === 0 ? "Tagpap" : q === 1 ? "Betontagsten" : "Vingetagsten"})
         </label>
         <input
           type="range"
@@ -54,7 +56,9 @@ export const RoofEditor: React.FC<Props> = ({ item, update }) => {
           max={2}
           step={1}
           value={q}
-          onChange={(e) => update("roofQuality", parseInt(e.target.value, 10) as 0 | 1 | 2)}
+          onChange={(e) =>
+            update("roofQuality", parseInt(e.target.value, 10) as 0 | 1 | 2)
+          }
           className="w-full accent-blue-500 h-2 rounded-lg appearance-none cursor-pointer"
           aria-label="Kvalitet"
           title="Kvalitet"
@@ -109,7 +113,9 @@ export const RoofEditor: React.FC<Props> = ({ item, update }) => {
           type="number"
           min={0}
           value={extras.kviste ?? 0}
-          onChange={(e) => updateExtra("kviste", Math.max(0, Number(e.target.value)))}
+          onChange={(e) =>
+            updateExtra("kviste", Math.max(0, Number(e.target.value)))
+          }
           className="border rounded px-3 py-2 w-28 text-sm"
         />
       </div>
