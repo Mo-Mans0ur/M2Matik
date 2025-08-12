@@ -61,11 +61,16 @@ export type ItemTerrasse = ItemBase & {
 
 export type ItemRoof = ItemBase & {
   typeId: "roof";
-  roofType: "" | "fladt" | "saddel"; // 'valm' udfaset -> migreres til 'saddel'
-  roofMaterial: "" | "tagpap" | "betontegl" | "alm-tegl";
-  roofPitch: number; // hældning i grader (0-60)
-  afterInsulation: boolean;
-  dormerCount: number;
+  // Ny model: én tagtype med hældning, kvalitet og tilvalg
+  roofPitch: number; // hældning i grader (0-45)
+  roofQuality: 0 | 1 | 2; // 0=tagpap, 1=betontagsten, 2=vingetagsten
+  extras: {
+    saddeltag?: boolean;
+    valm?: boolean;
+    undertag?: boolean; // fast undertag
+    efterisolering?: boolean;
+    kviste?: number; // antal kviste
+  };
 };
 
 export type ItemFacade = ItemBase & {

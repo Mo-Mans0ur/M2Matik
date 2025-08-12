@@ -226,11 +226,9 @@ export default function RenovationWithList() {
           uid: newUID(),
           typeId,
           label,
-          roofType: "",
-          roofMaterial: "",
           roofPitch: 0,
-          afterInsulation: false,
-          dormerCount: 0,
+          roofQuality: 0,
+          extras: { saddeltag: false, valm: false, undertag: false, efterisolering: false, kviste: 0 },
         };
         break;
       case "Facade":
@@ -390,23 +388,25 @@ export default function RenovationWithList() {
         break;
       }
       case "roof": {
-        if (it.roofType === "fladt") price += AREA * 1000;
-        if (it.roofType === "saddel") price += AREA * 1400; // inkluderer tidligere 'valm'
-        // lille justering baseret på hældning (pitch) – +1% pr. 5 grader
-        if (it.typeId === "roof" && typeof it.roofPitch === "number") {
-          const pitch = Math.min(60, Math.max(0, it.roofPitch || 0));
-          price *= 1 + pitch / 500; // 60° => +12%
-        }
+        // Baseline for tag ud fra kvalitet
+        const pitch = Math.max(0, Math.min(45, (it as any).roofPitch || 0));
+        const q = (it as any).roofQuality ?? 0; // 0=tagpap, 1=beton, 2=vinge
+        const basePerM2 = q === 0 ? 1000 : q === 1 ? 1400 : 1700;
+        price += AREA * basePerM2;
 
-        if (it.roofMaterial === "tagpap") price += AREA * 500;
-        if (it.roofMaterial === "betontegl") price += AREA * 700;
-        if (it.roofMaterial === "alm-tegl") price += AREA * 900;
+        // pitch påvirker kompleksitet: +1% pr. 5°
+        price = Math.round(price * (1 + pitch / 500)); // 45° => +9%
 
-        if (it.afterInsulation) price += AREA * 150;
-        if (it.dormerCount > 0) price += it.dormerCount * 1000;
+        // Tilvalg
+        const ex = (it as any).extras || {};
+        if (ex.saddeltag) price += Math.round(AREA * 100); // lille premium
+        if (ex.valm) price += Math.round(AREA * 150); // lidt dyrere udformning
+        if (ex.undertag) price += Math.round(AREA * 120);
+        if (ex.efterisolering) price += Math.round(AREA * 150);
+        if ((ex.kviste || 0) > 0) price += (ex.kviste || 0) * 1000;
 
-        // fallback hvis intet valgt:
-        if (price === 0) price += AREA * 1000 + AREA * 500;
+        // fallback "fra" hvis ikke sat (burde ikke ske da basePerM2 altid er sat)
+        if (price === 0) price += AREA * 1000;
         break;
       }
       case "Facade": {
@@ -469,7 +469,7 @@ export default function RenovationWithList() {
       case "terrasse":
         return 12000;
       case "roof":
-        return AREA * 1000 + AREA * 500; // fladt + tagpap baseline
+        return Math.round(AREA * 1000); // baseline med tagpap
       case "Facade":
         return AREA * 250 + 5000;
       case "walls":
@@ -555,11 +555,13 @@ export default function RenovationWithList() {
                 onSubmit={(e) => {
                   e.preventDefault();
                   if (!draftMeta) return;
-                  saveProjectMeta({
+                  const clamped = {
                     ...draftMeta,
+                    sizeM2: Math.max(60, Math.min(300, Number(draftMeta.sizeM2) || 0)),
                     createdAt: draftMeta.createdAt || new Date().toISOString(),
-                  });
-                  setMeta(draftMeta);
+                  };
+                  saveProjectMeta(clamped);
+                  setMeta(clamped);
                   setShowMetaEditor(false);
                 }}
               >
@@ -582,10 +584,10 @@ export default function RenovationWithList() {
                             m ? { ...m, propertyType: val } : m
                           )
                         }
-            className={`px-3 py-1 rounded border transition ${
+                        className={`px-3 py-1 rounded border transition ${
                           draftMeta.propertyType === val
-              ? "bg-blue-600 text-white border-blue-600"
-              : "bg-white border-gray-300 text-gray-700"
+                            ? "bg-blue-600 text-white border-blue-600"
+                            : "bg-white border-gray-300 text-gray-700"
                         }`}
                       >
                         {lbl}
@@ -598,18 +600,50 @@ export default function RenovationWithList() {
                   <label className="font-medium block" htmlFor="sizeM2">
                     Størrelse (m²)
                   </label>
-                  <input
-                    id="sizeM2"
-                    type="number"
-                    min={0}
-                    value={draftMeta.sizeM2}
-                    onChange={(e) =>
-                      setDraftMeta((m) =>
-                        m ? { ...m, sizeM2: parseInt(e.target.value) || 0 } : m
-                      )
-                    }
-                    className="w-full border rounded px-3 py-2 text-sm bg-white border-gray-300"
-                  />
+                  <div className="grid grid-cols-1 gap-2">
+                    <input
+                      id="sizeM2"
+                      type="number"
+                      min={60}
+                      max={300}
+                      value={draftMeta.sizeM2}
+                      onChange={(e) =>
+                        setDraftMeta((m) =>
+                          m
+                            ? {
+                                ...m,
+                                sizeM2: Math.max(
+                                  0,
+                                  parseInt(e.target.value) || 0
+                                ),
+                              }
+                            : m
+                        )
+                      }
+                      className="w-full border rounded px-3 py-2 text-sm bg-white border-gray-300"
+                    />
+                    <div>
+                      <input
+                        type="range"
+                        min={60}
+                        max={300}
+                        step={1}
+                        value={Math.max(60, Math.min(300, draftMeta.sizeM2))}
+                        onChange={(e) =>
+                          setDraftMeta((m) =>
+                            m ? { ...m, sizeM2: parseInt(e.target.value) } : m
+                          )
+                        }
+                        className="w-full accent-blue-500 h-2 rounded-lg appearance-none cursor-pointer"
+                        aria-label="Størrelse (m²)"
+                        title="Størrelse (m²)"
+                      />
+                      <div className="relative h-4 mt-1 text-[11px] text-gray-500 select-none">
+                        <span className="absolute left-0">60 m²</span>
+                        <span className="absolute right-0">300 m²</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 {/* Postnummer */}
                 <div className="space-y-1">
