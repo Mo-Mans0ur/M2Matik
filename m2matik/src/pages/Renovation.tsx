@@ -502,7 +502,7 @@ export default function RenovationWithList() {
 
   return (
     <div
-      className={`min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 transition-all duration-[400ms] ease-out ${
+      className={`min-h-screen flex flex-col bg-gray-50 transition-all duration-[400ms] ease-out ${
         entered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
       }`}
     >
@@ -547,7 +547,7 @@ export default function RenovationWithList() {
             <div
               role="dialog"
               aria-modal="true"
-              className="relative z-10 w-full max-w-sm bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4"
+              className="relative z-10 w-full max-w-sm bg-white rounded-xl shadow-lg border border-gray-200 p-4 space-y-4"
             >
               <h2 className="text-lg font-semibold">Rediger grunddata</h2>
               <form
@@ -582,10 +582,10 @@ export default function RenovationWithList() {
                             m ? { ...m, propertyType: val } : m
                           )
                         }
-                        className={`px-3 py-1 rounded border transition ${
+            className={`px-3 py-1 rounded border transition ${
                           draftMeta.propertyType === val
-                            ? "bg-blue-600 text-white border-blue-600"
-                            : "bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200"
+              ? "bg-blue-600 text-white border-blue-600"
+              : "bg-white border-gray-300 text-gray-700"
                         }`}
                       >
                         {lbl}
@@ -608,7 +608,7 @@ export default function RenovationWithList() {
                         m ? { ...m, sizeM2: parseInt(e.target.value) || 0 } : m
                       )
                     }
-                    className="w-full border rounded px-3 py-2 text-sm bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                    className="w-full border rounded px-3 py-2 text-sm bg-white border-gray-300"
                   />
                 </div>
                 {/* Postnummer */}
@@ -635,7 +635,7 @@ export default function RenovationWithList() {
                           : m
                       )
                     }
-                    className="w-full border rounded px-3 py-2 text-sm bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 tracking-widest"
+                    className="w-full border rounded px-3 py-2 text-sm bg-white border-gray-300 tracking-widest"
                     placeholder="0000"
                   />
                 </div>
@@ -670,7 +670,7 @@ export default function RenovationWithList() {
                   <button
                     type="button"
                     onClick={() => setShowMetaEditor(false)}
-                    className="px-3 py-1.5 rounded border text-xs bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600"
+                    className="px-3 py-1.5 rounded border text-xs bg-white border-gray-300 hover:bg-gray-50"
                   >
                     Annuller
                   </button>
@@ -703,10 +703,8 @@ export default function RenovationWithList() {
               return (
                 <div
                   key={opt.id}
-                  className={`relative group bg-white dark:bg-gray-800 rounded-xl border shadow-sm hover:shadow transition-all cursor-pointer active:bg-blue-50 dark:active:bg-blue-900/30 active:ring-1 active:ring-blue-300/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 active:scale-[.985] overflow-hidden ${
-                    count
-                      ? "border-blue-400 dark:border-blue-500"
-                      : "border-gray-200 dark:border-gray-700"
+                  className={`relative group bg-white rounded-xl border shadow-sm hover:shadow transition-all cursor-pointer active:bg-blue-50 active:ring-1 active:ring-blue-300/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 active:scale-[.985] overflow-hidden ${
+                    count ? "border-blue-400" : "border-gray-200"
                   }`}
                   onClick={() => addItem(opt.id as AnyItem["typeId"])}
                   onKeyDown={(e) => {
@@ -758,7 +756,7 @@ export default function RenovationWithList() {
           </section>
 
           {/* Højre: PROJEKT LISTE */}
-          <aside className="lg:sticky lg:top-6 h-fit bg-white dark:bg-gray-800 rounded-xl shadow p-4 w-full max-w-full lg:max-w-sm xl:max-w-[420px] mx-auto lg:mx-0">
+          <aside className="lg:sticky lg:top-6 h-fit bg-white rounded-xl shadow p-4 w-full max-w-full lg:max-w-sm xl:max-w-[420px] mx-auto lg:mx-0">
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-base sm:text-lg font-semibold">
                 Projektliste
@@ -824,7 +822,7 @@ export default function RenovationWithList() {
                       </div>
 
                       {/* Editor – pr. post */}
-                      <div className="mt-3 rounded-lg bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 px-4 py-4 space-y-5 text-sm leading-relaxed">
+                      <div className="mt-3 rounded-lg bg-white border border-gray-200 px-4 py-4 space-y-5 text-sm leading-relaxed">
                         {it.typeId === "maling" && (
                           <PaintingEditor
                             item={it as Extract<AnyItem, { typeId: "maling" }>}
@@ -929,14 +927,14 @@ export default function RenovationWithList() {
       {/* Sticky mobil bund-bar (kun små skærme / kun når der er poster) */}
       {items.length > 0 && (
         <div
-          className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 dark:bg-gray-800/95 backdrop-blur border-t border-gray-200 dark:border-gray-700 px-4 pt-2 pb-2 pb-safe-bottom flex items-center justify-between shadow-lg"
+          className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur border-t border-gray-200 px-4 pt-2 pb-2 pb-safe-bottom flex items-center justify-between shadow-lg"
           aria-label="Samlet pris sticky bar"
         >
           <div className="flex flex-col leading-tight">
-            <span className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            <span className="text-[10px] uppercase tracking-wide text-gray-500">
               Samlet
             </span>
-            <span className="text-base font-semibold text-blue-700 dark:text-blue-400">
+            <span className="text-base font-semibold text-blue-700">
               {formatKr(smartRound(sumAdjusted))}
             </span>
           </div>
