@@ -91,10 +91,10 @@ export const DoorWindowEditor: React.FC<Props> = ({ item, update }) => {
             aria-label="Kvalitet"
             title="Kvalitet"
           />
-          <div className="flex justify-between text-[11px] text-gray-500">
-            <span>IKEA</span>
-            <span>Hack</span>
-            <span>Snedker</span>
+          <div className="relative h-4 mt-1 text-[11px] text-gray-500 select-none">
+            <span className="absolute left-0">IKEA</span>
+            <span className="absolute left-1/2 -translate-x-1/2">Hack</span>
+            <span className="absolute right-0">Snedker</span>
           </div>
         </div>
         <div>
