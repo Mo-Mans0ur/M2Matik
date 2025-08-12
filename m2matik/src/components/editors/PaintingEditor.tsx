@@ -24,19 +24,24 @@ export const PaintingEditor: React.FC<Props> = ({ item, update }) => {
         title="Maledækning i %"
       />
       <div className="h-px bg-gray-200 my-2" />
-      <label className="block text-sm text-gray-600">Kvalitet</label>
+      <label className="block text-sm text-gray-600">Kvalitet ({item.paintQuality === 0 ? "IKEA" : item.paintQuality === 1 ? "Hack" : "Snedker"})</label>
       <input
         type="range"
         min={0}
-        max={1}
+        max={2}
         step={1}
         value={item.paintQuality}
         onChange={(e) =>
-          update("paintQuality", parseInt(e.target.value, 10) as 0 | 1)
+          update("paintQuality", parseInt(e.target.value, 10) as 0 | 1 | 2)
         }
         className="w-full accent-blue-500 h-2 rounded-lg appearance-none cursor-pointer"
         aria-label="Vælg malerkvalitet"
       />
+      <div className="flex justify-between text-[11px] text-gray-500">
+        <span>IKEA</span>
+        <span>Hack</span>
+        <span>Snedker</span>
+      </div>
       <div className="flex flex-wrap gap-4 text-sm">
         {(
           [

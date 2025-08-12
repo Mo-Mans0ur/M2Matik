@@ -176,7 +176,7 @@ export default function RenovationWithList() {
           uid: newUID(),
           typeId,
           label,
-          paintQuality: 0,
+          paintQuality: 1,
           extras: {},
           coveragePercent: 100,
         };
@@ -186,7 +186,7 @@ export default function RenovationWithList() {
           uid: newUID(),
           typeId,
           label,
-          floorQuality: 0,
+          floorQuality: 1,
           hasFloorHeating: false,
         };
         break;
@@ -207,7 +207,7 @@ export default function RenovationWithList() {
           operation: "replacement",
           newInstall: "door",
           count: 1,
-          quality: 50,
+          quality: 1,
           sizeScale: 50,
         };
         break;
@@ -279,7 +279,7 @@ export default function RenovationWithList() {
           typeId,
           label,
           placement: "same",
-          quality: 0,
+          quality: 1,
         };
         break;
       default:
@@ -309,7 +309,7 @@ export default function RenovationWithList() {
 
     switch (it.typeId) {
       case "maling": {
-  const qFactor = it.paintQuality === 1 ? 1.2 : 1;
+  const qFactor = it.paintQuality === 0 ? 1 : it.paintQuality === 1 ? 1.2 : 1.5;
   const coverage = Math.max(0, Math.min(100, (it as any).coveragePercent ?? 100)) / 100;
   price += Math.round(AREA * perM2.maling * qFactor * coverage);
         if (it.extras.træværk) price += 2000;
@@ -318,7 +318,7 @@ export default function RenovationWithList() {
         break;
       }
       case "gulv": {
-        const floorFactor = it.floorQuality === 1 ? 1.2 : 1;
+  const floorFactor = it.floorQuality === 0 ? 1 : it.floorQuality === 1 ? 1.2 : 1.5;
         price += Math.round(AREA * perM2.gulv * floorFactor);
         if (it.hasFloorHeating) price += 5000;
         break;
@@ -365,9 +365,9 @@ export default function RenovationWithList() {
               : doorWindowBase.extraForNewHoleWindow
             : 0;
         // Juster for kvalitet og størrelse (0-100) som ±20% hver
-        const q = (it as any).quality ?? 50;
-        const s = (it as any).sizeScale ?? 50;
-        const qualityFactor = 1 + ((q - 50) / 50) * 0.2; // 0..100 -> 0.8..1.2
+  const q = (it as any).quality ?? 1; // 0,1,2
+  const s = (it as any).sizeScale ?? 50;
+  const qualityFactor = q === 0 ? 1 : q === 1 ? 1.15 : 1.35;
         const sizeFactor = 1 + ((s - 50) / 50) * 0.2; // 0..100 -> 0.8..1.2
         price += Math.round((unit + holeExtra) * qualityFactor * sizeFactor) *
           Math.max(1, doorWin.count);

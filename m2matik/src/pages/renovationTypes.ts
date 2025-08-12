@@ -23,7 +23,7 @@ export type ItemBase = {
 
 export type ItemMaling = ItemBase & {
   typeId: "maling";
-  paintQuality: 0 | 1;
+  paintQuality: 0 | 1 | 2; // 0=IKEA, 1=Hack, 2=Snedker
   extras: { træværk?: boolean; paneler?: boolean; stuk?: boolean };
   // procent af boligen der skal males (0-100)
   coveragePercent?: number;
@@ -31,7 +31,7 @@ export type ItemMaling = ItemBase & {
 
 export type ItemGulv = ItemBase & {
   typeId: "gulv";
-  floorQuality: 0 | 1;
+  floorQuality: 0 | 1 | 2; // 0=IKEA, 1=Hack, 2=Snedker
   hasFloorHeating: boolean;
 };
 
@@ -48,7 +48,7 @@ export type ItemDøreVinduer = ItemBase & {
   variant?: "doorWindowReplacement" | "newHole" | "newDoor" | "newWindow"; // legacy
   count: number;
   // Nye felter
-  quality?: number; // 0-100
+  quality?: 0 | 1 | 2; // IKEA/Hack/Snedker
   sizeScale?: number; // 0-100
 };
 

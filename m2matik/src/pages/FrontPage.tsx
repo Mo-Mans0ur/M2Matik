@@ -38,9 +38,9 @@ export default function FrontPage() {
       postcode,
       createdAt: new Date().toISOString(),
     };
-  saveProjectMeta(payload);
-  // Go to the choice screen (GroundType) instead of directly to Renovation
-  navigate(`/groundtype`);
+    saveProjectMeta(payload);
+    // Go to the choice screen (GroundType) instead of directly to Renovation
+    navigate(`/groundtype`);
   };
 
   return (

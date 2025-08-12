@@ -10,8 +10,8 @@ export default function App() {
   return (
     <Router>
       <Routes>
-  {/* Front page collects basics, then routes to GroundType */}
-  <Route path="/" element={<FrontPage />} />
+        {/* Front page collects basics, then routes to GroundType */}
+        <Route path="/" element={<FrontPage />} />
         {/* New canonical paths */}
         <Route path="/groundtype" element={<GroundType />} />
         <Route path="/apartment" element={<Apartment />} />
