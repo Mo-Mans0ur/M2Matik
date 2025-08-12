@@ -55,8 +55,9 @@ export type ItemTerrasse = ItemBase & {
 
 export type ItemRoof = ItemBase & {
   typeId: "roof";
-  roofType: "" | "fladt" | "valm" | "saddel";
+  roofType: "" | "fladt" | "saddel"; // 'valm' udfaset -> migreres til 'saddel'
   roofMaterial: "" | "tagpap" | "betontegl" | "alm-tegl";
+  roofPitch: number; // hældning i grader (0-60)
   afterInsulation: boolean;
   dormerCount: number;
 };

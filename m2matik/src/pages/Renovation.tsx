@@ -1,10 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  FaPaintRoller,
-  // FaRulerCombined,
-  FaBath,
-  FaDoorOpen,
-} from "react-icons/fa";
+import { FaPaintRoller, FaBath, FaDoorOpen } from "react-icons/fa";
 import { GiBrickWall } from "react-icons/gi";
 import {
   MdOutlineRoofing,
@@ -15,7 +10,11 @@ import {
 } from "react-icons/md";
 import { RiLayoutGridLine } from "react-icons/ri";
 import { FaHouseFire } from "react-icons/fa6";
-import { loadProjectMeta, type ProjectMeta } from "../lib/storage";
+import {
+  loadProjectMeta,
+  saveProjectMeta,
+  type ProjectMeta,
+} from "../lib/storage";
 import {
   BASE_DATE,
   ANNUAL_ADJUSTMENT,
@@ -44,6 +43,11 @@ import type { AnyItem, ItemDøreVinduer } from "./renovationTypes";
 // ---------- Komponent ----------
 export default function RenovationWithList() {
   const [meta, setMeta] = useState<ProjectMeta | null>(null);
+  const [showMetaEditor, setShowMetaEditor] = useState(false);
+  const [entered, setEntered] = useState(false);
+
+  // Lokal kopi når man redigerer
+  const [draftMeta, setDraftMeta] = useState<ProjectMeta | null>(null);
 
   // Manuel prisjustering i %
   const [manualAdjustment, setManualAdjustment] = useState(0);
@@ -53,7 +57,18 @@ export default function RenovationWithList() {
 
   // Hent meta (areal, kælder, 1. sal)
   useEffect(() => {
-    setMeta(loadProjectMeta());
+    const m = loadProjectMeta();
+    if (m) {
+      const normalized: ProjectMeta = {
+        ...m,
+        postcode: typeof m.postcode === "string" ? m.postcode : "",
+      };
+      setMeta(normalized);
+    } else {
+      setMeta(null);
+    }
+    // trigger mount animation next tick
+    requestAnimationFrame(() => setEntered(true));
   }, []);
 
   const AREA = meta?.sizeM2 ?? 0;
@@ -128,6 +143,15 @@ export default function RenovationWithList() {
     },
   ] as const;
 
+  // Hvor mange af hver type er valgt
+  const typeCounts = useMemo(() => {
+    const acc: Record<string, number> = {};
+    items.forEach((it) => {
+      acc[it.typeId] = (acc[it.typeId] || 0) + 1;
+    });
+    return acc;
+  }, [items]);
+
   // Standard satser
   // (satser importeret fra renovationTypes)
 
@@ -200,6 +224,7 @@ export default function RenovationWithList() {
           label,
           roofType: "",
           roofMaterial: "",
+          roofPitch: 0,
           afterInsulation: false,
           dormerCount: 0,
         };
@@ -345,8 +370,12 @@ export default function RenovationWithList() {
       }
       case "roof": {
         if (it.roofType === "fladt") price += AREA * 1000;
-        if (it.roofType === "valm") price += AREA * 1200;
-        if (it.roofType === "saddel") price += AREA * 1400;
+        if (it.roofType === "saddel") price += AREA * 1400; // inkluderer tidligere 'valm'
+        // lille justering baseret på hældning (pitch) – +1% pr. 5 grader
+        if (it.typeId === "roof" && typeof it.roofPitch === "number") {
+          const pitch = Math.min(60, Math.max(0, it.roofPitch || 0));
+          price *= 1 + pitch / 500; // 60° => +12%
+        }
 
         if (it.roofMaterial === "tagpap") price += AREA * 500;
         if (it.roofMaterial === "betontegl") price += AREA * 700;
@@ -443,7 +472,11 @@ export default function RenovationWithList() {
   // smartRound & formatKr importeret
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+    <div
+      className={`min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 transition-all duration-[400ms] ease-out ${
+        entered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
+      }`}
+    >
       <main
         className={`flex-1 container mx-auto px-3 sm:px-4 py-6 sm:py-8 space-y-6 ${
           items.length > 0 ? "pb-24 sm:pb-8" : "pb-8"
@@ -459,12 +492,168 @@ export default function RenovationWithList() {
                 : meta.propertyType === "apartment"
                 ? "Lejlighed"
                 : "Sommerhus"}{" "}
-              - {meta.sizeM2} m² - Kælder: {meta.basement ? "Ja" : "Nej"} - 1.
-              sal: {meta.firstFloor ? "Ja" : "Nej"}
+              - {meta.sizeM2} m² - Postnr: {meta.postcode || "—"} - Kælder:{" "}
+              {meta.basement ? "Ja" : "Nej"} - 1. sal:{" "}
+              {meta.firstFloor ? "Ja" : "Nej"}
             </div>
-            <button className="text-xs bg-white border border-blue-300 rounded px-3 py-1 hover:bg-blue-100">
+            <button
+              onClick={() => {
+                setDraftMeta(meta);
+                setShowMetaEditor(true);
+              }}
+              className="text-xs bg-white border border-blue-300 rounded px-3 py-1 hover:bg-blue-100"
+            >
               Rediger
             </button>
+          </div>
+        )}
+
+        {/* Meta editor modal */}
+        {showMetaEditor && draftMeta && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              onClick={() => setShowMetaEditor(false)}
+            />
+            <div
+              role="dialog"
+              aria-modal="true"
+              className="relative z-10 w-full max-w-sm bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4 space-y-4"
+            >
+              <h2 className="text-lg font-semibold">Rediger grunddata</h2>
+              <form
+                className="space-y-3 text-sm"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!draftMeta) return;
+                  saveProjectMeta({
+                    ...draftMeta,
+                    createdAt: draftMeta.createdAt || new Date().toISOString(),
+                  });
+                  setMeta(draftMeta);
+                  setShowMetaEditor(false);
+                }}
+              >
+                {/* Type */}
+                <div className="space-y-1">
+                  <label className="font-medium block">Type</label>
+                  <div className="flex gap-2 text-xs">
+                    {(
+                      [
+                        ["house", "Hus"],
+                        ["apartment", "Lejlighed"],
+                        ["summerhouse", "Sommerhus"],
+                      ] as [ProjectMeta["propertyType"], string][]
+                    ).map(([val, lbl]) => (
+                      <button
+                        key={val}
+                        type="button"
+                        onClick={() =>
+                          setDraftMeta((m) =>
+                            m ? { ...m, propertyType: val } : m
+                          )
+                        }
+                        className={`px-3 py-1 rounded border transition ${
+                          draftMeta.propertyType === val
+                            ? "bg-blue-600 text-white border-blue-600"
+                            : "bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200"
+                        }`}
+                      >
+                        {lbl}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* Størrelse */}
+                <div className="space-y-1">
+                  <label className="font-medium block" htmlFor="sizeM2">
+                    Størrelse (m²)
+                  </label>
+                  <input
+                    id="sizeM2"
+                    type="number"
+                    min={0}
+                    value={draftMeta.sizeM2}
+                    onChange={(e) =>
+                      setDraftMeta((m) =>
+                        m ? { ...m, sizeM2: parseInt(e.target.value) || 0 } : m
+                      )
+                    }
+                    className="w-full border rounded px-3 py-2 text-sm bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
+                  />
+                </div>
+                {/* Postnummer */}
+                <div className="space-y-1">
+                  <label className="font-medium block" htmlFor="postcode">
+                    Postnummer
+                  </label>
+                  <input
+                    id="postcode"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={4}
+                    value={draftMeta.postcode}
+                    onChange={(e) =>
+                      setDraftMeta((m) =>
+                        m
+                          ? {
+                              ...m,
+                              postcode: e.target.value
+                                .replace(/[^0-9]/g, "")
+                                .slice(0, 4),
+                            }
+                          : m
+                      )
+                    }
+                    className="w-full border rounded px-3 py-2 text-sm bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 tracking-widest"
+                    placeholder="0000"
+                  />
+                </div>
+                {/* Checkbokse */}
+                <div className="flex items-center gap-4 text-xs">
+                  <label className="inline-flex items-center gap-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={draftMeta.basement}
+                      onChange={(e) =>
+                        setDraftMeta((m) =>
+                          m ? { ...m, basement: e.target.checked } : m
+                        )
+                      }
+                    />
+                    <span>Kælder</span>
+                  </label>
+                  <label className="inline-flex items-center gap-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={draftMeta.firstFloor}
+                      onChange={(e) =>
+                        setDraftMeta((m) =>
+                          m ? { ...m, firstFloor: e.target.checked } : m
+                        )
+                      }
+                    />
+                    <span>1. sal</span>
+                  </label>
+                </div>
+                <div className="flex justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowMetaEditor(false)}
+                    className="px-3 py-1.5 rounded border text-xs bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600"
+                  >
+                    Annuller
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 rounded bg-blue-600 text-white text-xs font-medium hover:bg-blue-700"
+                  >
+                    Gem
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
 
@@ -472,53 +661,67 @@ export default function RenovationWithList() {
           Renovering - Tilvalg
         </h1>
         <p className="text-center text-xs sm:text-sm text-gray-600 px-1">
-          Klik på kort for at tilføje til projekt listen. Hver klik laver en ny,
-          redigerbar post.
+          Klik på et kort for at tilføje til projektlisten. Hvert klik laver en
+          ny, redigerbar post.
         </p>
 
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_420px] gap-5 lg:gap-6 items-start">
           {/* Venstre: KORT (klik = tilføj) */}
-          <section className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          <section className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
             {options.map((opt) => {
               const fromPrice = getCardFromPrice(opt.id as AnyItem["typeId"]);
+              const count = typeCounts[opt.id] || 0;
               return (
                 <div
                   key={opt.id}
-                  className="bg-white rounded-xl shadow hover:shadow-lg transition-shadow p-4 sm:p-5 flex flex-col min-h-[130px] sm:min-h-[150px] cursor-pointer"
+                  className={`relative group bg-white dark:bg-gray-800 rounded-xl border shadow-sm hover:shadow transition-all cursor-pointer active:bg-blue-50 dark:active:bg-blue-900/30 active:ring-1 active:ring-blue-300/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 active:scale-[.985] overflow-hidden ${
+                    count
+                      ? "border-blue-400 dark:border-blue-500"
+                      : "border-gray-200 dark:border-gray-700"
+                  }`}
                   onClick={() => addItem(opt.id as AnyItem["typeId"])}
-                  title="Klik for at tilføje til projekt listen"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      addItem(opt.id as AnyItem["typeId"]);
+                    }
+                  }}
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`Tilføj ${opt.label}${
+                    count ? ` (valgt ${count})` : ""
+                  }`}
+                  title="Klik for at tilføje til projektlisten"
                 >
-                  <div>
-                    <div className="flex flex-wrap items-center gap-2 text-base sm:text-lg font-medium leading-snug">
-                      {opt.icon}
-                      <span className="break-words" title={opt.label}>
-                        {opt.label}
-                      </span>
-                      <InfoTooltip text={opt.info} />
+                  {count > 0 && (
+                    <span className="pointer-events-none absolute inset-x-0 bottom-0 h-1.5 bg-blue-500" />
+                  )}
+                  <div className="p-2.5 sm:p-4 flex flex-col min-h-[100px] sm:min-h-[130px]">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2 text-sm sm:text-base font-medium leading-snug">
+                        {opt.icon}
+                        <span className="break-words" title={opt.label}>
+                          {opt.label}
+                        </span>
+                        <InfoTooltip text={opt.info} />
+                      </div>
+                      <div className="mt-1">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded bg-gray-100 group-active:bg-blue-100 text-gray-700 group-active:text-blue-700 text-[10px] sm:text-[11px] font-semibold tabular-nums transition-colors">
+                          Fra {formatKr(fromPrice)}
+                        </span>
+                      </div>
                     </div>
-                    <div className="mt-1">
-                      <span className="inline-flex items-center px-2 py-1 rounded bg-gray-100 text-gray-700 text-[10px] sm:text-[11px] font-semibold tabular-nums">
-                        Fra {formatKr(fromPrice)}
+                    <div className="mt-auto pt-2 flex items-center justify-between gap-2">
+                      <span className="text-[10px] sm:text-[11px] text-gray-500 group-active:text-blue-600 transition-colors">
+                        Tilføj til projektlisten
+                      </span>
+                      <span className="inline-flex items-center justify-center rounded-full border px-2.5 py-1 text-[11px] sm:text-xs border-gray-300 bg-white text-gray-700 group-active:border-blue-300 group-active:text-blue-700 transition-colors select-none">
+                        <span className="text-base sm:text-lg leading-none mr-1">
+                          +
+                        </span>
+                        Tilføj
                       </span>
                     </div>
-                  </div>
-
-                  <div className="mt-auto pt-3 sm:pt-4 flex items-center justify-between gap-2">
-                    <span className="text-[10px] sm:text-xs text-gray-500">
-                      Klik for at tilføje
-                    </span>
-                    <button
-                      className="inline-flex items-center justify-center rounded-full border px-3 py-1 text-xs sm:text-sm border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        addItem(opt.id as AnyItem["typeId"]);
-                      }}
-                    >
-                      <span className="text-sm sm:text-base leading-none mr-1">
-                        +
-                      </span>
-                      Tilføj
-                    </button>
                   </div>
                 </div>
               );
@@ -529,21 +732,21 @@ export default function RenovationWithList() {
           <aside className="lg:sticky lg:top-6 h-fit bg-white dark:bg-gray-800 rounded-xl shadow p-4 w-full max-w-full lg:max-w-sm xl:max-w-[420px] mx-auto lg:mx-0">
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-base sm:text-lg font-semibold">
-                Projekt liste
+                Projektliste
               </h2>
               {items.length > 0 && (
                 <button
                   className="text-[11px] sm:text-xs text-gray-600 underline"
                   onClick={() => setItems([])}
                 >
-                  Ryd liste
+                  Ryd projektliste
                 </button>
               )}
             </div>
 
             {items.length === 0 ? (
               <p className="text-sm text-gray-500">
-                Ingen elementer på listen endnu.
+                Ingen poster i projektlisten endnu.
               </p>
             ) : (
               <div
@@ -576,7 +779,7 @@ export default function RenovationWithList() {
                         </div>
                         <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
                           <span className="text-[10px] sm:text-xs text-gray-500">
-                            (før justering: {formatKr(itemBase)})
+                            Før justering: {formatKr(itemBase)}
                           </span>
                           <span className="text-xs sm:text-sm font-semibold">
                             {formatKr(itemAdj)}
@@ -592,35 +795,31 @@ export default function RenovationWithList() {
                       </div>
 
                       {/* Editor – pr. post */}
-                      <div className="bg-white rounded-md p-3 shadow-inner">
+                      <div className="mt-3 rounded-lg bg-white dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 px-4 py-4 space-y-5 text-sm leading-relaxed">
                         {it.typeId === "maling" && (
                           <PaintingEditor
                             item={it as Extract<AnyItem, { typeId: "maling" }>}
                             update={(k, v) => updateItem(it.uid, k, v)}
                           />
                         )}
-
                         {it.typeId === "gulv" && (
                           <FloorEditor
                             item={it as Extract<AnyItem, { typeId: "gulv" }>}
                             update={(k, v) => updateItem(it.uid, k, v)}
                           />
                         )}
-
                         {it.typeId === "bad" && (
                           <BathEditor
                             item={it as Extract<AnyItem, { typeId: "bad" }>}
                             update={(k, v) => updateItem(it.uid, k, v)}
                           />
                         )}
-
                         {it.typeId === "døreOgVinduer" && (
                           <DoorWindowEditor
                             item={it as ItemDøreVinduer}
                             update={(k, v) => updateItem(it.uid, k, v)}
                           />
                         )}
-
                         {it.typeId === "terrasse" && (
                           <TerraceEditor
                             item={
@@ -629,42 +828,36 @@ export default function RenovationWithList() {
                             update={(k, v) => updateItem(it.uid, k, v)}
                           />
                         )}
-
                         {it.typeId === "roof" && (
                           <RoofEditor
                             item={it as Extract<AnyItem, { typeId: "roof" }>}
                             update={(k, v) => updateItem(it.uid, k, v)}
                           />
                         )}
-
                         {it.typeId === "Facade" && (
                           <FacadeEditor
                             item={it as Extract<AnyItem, { typeId: "Facade" }>}
                             update={(k, v) => updateItem(it.uid, k, v)}
                           />
                         )}
-
                         {it.typeId === "walls" && (
                           <WallsEditor
                             item={it as Extract<AnyItem, { typeId: "walls" }>}
                             update={(k, v) => updateItem(it.uid, k, v)}
                           />
                         )}
-
                         {it.typeId === "heating" && (
                           <HeatingEditor
                             item={it as Extract<AnyItem, { typeId: "heating" }>}
                             update={(k, v) => updateItem(it.uid, k, v)}
                           />
                         )}
-
                         {it.typeId === "el" && (
                           <ElectricityEditor
                             item={it as Extract<AnyItem, { typeId: "el" }>}
                             update={(k, v) => updateItem(it.uid, k, v)}
                           />
                         )}
-
                         {it.typeId === "køkken" && (
                           <KitchenEditor
                             item={it as Extract<AnyItem, { typeId: "køkken" }>}

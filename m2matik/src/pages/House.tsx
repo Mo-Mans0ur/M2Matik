@@ -20,7 +20,7 @@ export default function House() {
           onClick={() => navigate("/house/addition")}
           className="bg-blue-500 hover:bg-blue-600 text-white px-5 py-4 rounded-lg shadow-lg text-lg sm:text-xl"
         >
-          Bygge til
+          Tilbygning
         </button>
         <button
           onClick={() => navigate("/house/new")}

@@ -13,6 +13,7 @@ export default function FrontPage() {
   const [sizeM2, setSizeM2] = useState<number>(0);
   const [basement, setBasement] = useState<boolean>(false);
   const [firstFloor, setFirstFloor] = useState<boolean>(false);
+  const [postcode, setPostcode] = useState<string>("");
 
   // prefill hvis der findes data i localStorage
   useEffect(() => {
@@ -22,6 +23,7 @@ export default function FrontPage() {
       setSizeM2(prev.sizeM2);
       setBasement(prev.basement);
       setFirstFloor(prev.firstFloor);
+      setPostcode(prev.postcode || "");
     }
   }, []);
 
@@ -33,6 +35,7 @@ export default function FrontPage() {
       sizeM2,
       basement,
       firstFloor,
+      postcode,
       createdAt: new Date().toISOString(),
     };
     saveProjectMeta(payload);
@@ -76,6 +79,22 @@ export default function FrontPage() {
             />
           </label>
 
+          <label className="flex flex-col gap-1">
+            <span className="text-xs sm:text-sm text-gray-600">Postnummer</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={4}
+              className="border rounded-lg px-3 py-2 tracking-widest"
+              value={postcode}
+              onChange={(e) =>
+                setPostcode(e.target.value.replace(/[^0-9]/g, "").slice(0, 4))
+              }
+              placeholder="0000"
+            />
+          </label>
+
           <label className="inline-flex items-center gap-2 text-sm">
             <input
               type="checkbox"
@@ -108,7 +127,7 @@ export default function FrontPage() {
                   : "bg-gray-300 cursor-not-allowed"
               }`}
           >
-            Fortsæt til
+            Videre
           </button>
         </div>
       </div>
