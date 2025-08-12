@@ -330,8 +330,8 @@ export default function RenovationWithList() {
       case "bad": {
         const BASE_BATH = 50000;
         const RELOC = 2500;
-  const n = Math.max(0, Math.min(5, (it as any).count ?? 1));
-  price += (BASE_BATH + (it.bathPlacement === "new" ? RELOC : 0)) * n;
+        const n = Math.max(0, Math.min(5, (it as any).count ?? 1));
+        price += (BASE_BATH + (it.bathPlacement === "new" ? RELOC : 0)) * n;
         break;
       }
       case "døreOgVinduer": {
@@ -433,8 +433,8 @@ export default function RenovationWithList() {
         break;
       }
       case "el": {
-  const s = (it as any).stikCount ?? 0;
-  let elBase = it.outletCount * 350 + s * 300;
+        const s = (it as any).stikCount ?? 0;
+        let elBase = it.outletCount * 350 + s * 300;
         if (it.newPanel) elBase += 5000;
         if (it.hiddenRuns) elBase += Math.round(elBase * 1.25);
         if ((it as any).evCharger) elBase += 9000;

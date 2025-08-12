@@ -22,7 +22,9 @@ export const ElectricityEditor: React.FC<Props> = ({ item, update }) => (
       onChange={(e) => update("outletCount", parseInt(e.target.value, 10))}
       className="w-full accent-blue-500 h-2 rounded-lg appearance-none cursor-pointer"
     />
-    <label className="block text-sm text-gray-600">Antal stik: {(item as any).stikCount ?? 0}</label>
+    <label className="block text-sm text-gray-600">
+      Antal stik: {(item as any).stikCount ?? 0}
+    </label>
     <input
       title="Antal stik"
       type="range"
