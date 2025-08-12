@@ -268,6 +268,7 @@ export default function RenovationWithList() {
           typeId,
           label,
           outletCount: 0,
+          stikCount: 0,
           newPanel: false,
           hiddenRuns: false,
           evCharger: false,
@@ -432,7 +433,8 @@ export default function RenovationWithList() {
         break;
       }
       case "el": {
-        let elBase = it.outletCount * 350;
+  const s = (it as any).stikCount ?? 0;
+  let elBase = it.outletCount * 350 + s * 300;
         if (it.newPanel) elBase += 5000;
         if (it.hiddenRuns) elBase += Math.round(elBase * 1.25);
         if ((it as any).evCharger) elBase += 9000;

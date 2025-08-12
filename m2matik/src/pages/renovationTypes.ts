@@ -93,6 +93,7 @@ export type ItemHeating = ItemBase & {
 export type ItemEl = ItemBase & {
   typeId: "el";
   outletCount: number;
+  stikCount?: number; // antal stik (0-50)
   newPanel: boolean;
   hiddenRuns: boolean;
   evCharger?: boolean; // bil lader

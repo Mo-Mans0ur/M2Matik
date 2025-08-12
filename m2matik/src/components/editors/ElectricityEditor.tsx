@@ -22,6 +22,17 @@ export const ElectricityEditor: React.FC<Props> = ({ item, update }) => (
       onChange={(e) => update("outletCount", parseInt(e.target.value, 10))}
       className="w-full accent-blue-500 h-2 rounded-lg appearance-none cursor-pointer"
     />
+    <label className="block text-sm text-gray-600">Antal stik: {(item as any).stikCount ?? 0}</label>
+    <input
+      title="Antal stik"
+      type="range"
+      min={0}
+      max={50}
+      step={1}
+      value={(item as any).stikCount ?? 0}
+      onChange={(e) => update("stikCount", parseInt(e.target.value, 10))}
+      className="w-full accent-blue-500 h-2 rounded-lg appearance-none cursor-pointer"
+    />
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
       <label className="inline-flex items-center gap-2">
         <input
