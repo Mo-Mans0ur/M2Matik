@@ -38,6 +38,7 @@ export type ItemGulv = ItemBase & {
 export type ItemBad = ItemBase & {
   typeId: "bad";
   bathPlacement: "same" | "new";
+  count: number; // antal badeværelser (0-5)
 };
 
 export type ItemDøreVinduer = ItemBase & {
@@ -49,7 +50,7 @@ export type ItemDøreVinduer = ItemBase & {
   count: number;
   // Nye felter
   quality?: 0 | 1 | 2; // IKEA/Hack/Snedker
-  sizeScale?: number; // 0-100 (UI slider). Mappes til bredde i cm: 50 + sizeScale (50–150 cm)
+  sizeScale?: number; // 0-100 cm (UI slider). Baseline 50 cm = normal størrelse
 };
 
 export type ItemTerrasse = ItemBase & {
@@ -80,7 +81,6 @@ export type ItemWalls = ItemBase & {
   demoBærende?: boolean; // bærende væg
   demoIndvendig?: boolean; // nedrivning af indvendig væg
   // Nye vægge
-  nyeVægge?: boolean; // generelt
   nyLet?: boolean; // ny letskillevæg
   nyBærende?: boolean; // ny bærende væg
 };

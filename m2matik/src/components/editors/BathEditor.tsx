@@ -27,6 +27,20 @@ export const BathEditor: React.FC<Props> = ({ item, update }) => (
         </label>
       ))}
     </div>
+    <label className="block text-sm text-gray-600">
+      Antal badeværelser: {Math.max(0, Math.min(5, (item as any).count ?? 1))}
+    </label>
+    <input
+      type="range"
+      min={0}
+      max={5}
+      step={1}
+      value={(item as any).count ?? 1}
+      onChange={(e) => update("count", parseInt(e.target.value, 10))}
+      className="w-full accent-blue-500 h-2 rounded-lg appearance-none cursor-pointer"
+      aria-label="Antal badeværelser"
+      title="Antal badeværelser"
+    />
   </div>
 );
 export default BathEditor;

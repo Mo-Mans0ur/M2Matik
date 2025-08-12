@@ -39,15 +39,7 @@ export const WallsEditor: React.FC<Props> = ({ item, update }) => (
     </div>
     <div className="font-medium pt-2">Nye vægge</div>
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-      <label className="inline-flex items-center gap-2">
-        <input
-          type="checkbox"
-          className="accent-blue-500"
-          checked={!!item.nyeVægge}
-          onChange={(e) => update("nyeVægge", e.target.checked)}
-        />
-        Nye vægge (generelt)
-      </label>
+      
       <label className="inline-flex items-center gap-2">
         <input
           type="checkbox"
@@ -55,7 +47,7 @@ export const WallsEditor: React.FC<Props> = ({ item, update }) => (
           checked={!!item.nyLet}
           onChange={(e) => update("nyLet", e.target.checked)}
         />
-        Ny letskillevæg
+        Ny let skillevæg
       </label>
       <label className="inline-flex items-center gap-2">
         <input

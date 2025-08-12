@@ -196,6 +196,7 @@ export default function RenovationWithList() {
           typeId,
           label,
           bathPlacement: "same",
+          count: 1,
         };
         break;
       case "døreOgVinduer":
@@ -249,7 +250,6 @@ export default function RenovationWithList() {
           demoLet: false,
           demoBærende: false,
           demoIndvendig: false,
-          nyeVægge: false,
           nyLet: false,
           nyBærende: false,
         };
@@ -329,7 +329,8 @@ export default function RenovationWithList() {
       case "bad": {
         const BASE_BATH = 50000;
         const RELOC = 2500;
-        price += BASE_BATH + (it.bathPlacement === "new" ? RELOC : 0);
+  const n = Math.max(0, Math.min(5, (it as any).count ?? 1));
+  price += (BASE_BATH + (it.bathPlacement === "new" ? RELOC : 0)) * n;
         break;
       }
       case "døreOgVinduer": {
@@ -421,7 +422,6 @@ export default function RenovationWithList() {
         if ((it as any).demoBærende) price += 15000;
         if ((it as any).demoIndvendig) price += 6000;
         // Nye vægge
-        if ((it as any).nyeVægge) price += 8000;
         if ((it as any).nyLet) price += 9000;
         if ((it as any).nyBærende) price += 18000;
         if (price === 0) price += perM2.walls; // baseline badge/fallback

@@ -107,7 +107,7 @@ export const DoorWindowEditor: React.FC<Props> = ({ item, update }) => {
         </div>
         <div>
           <label className="block text-xs text-gray-600">
-            Størrelse (cm): {50 + (item.sizeScale ?? 0)} cm
+            Størrelse (cm): {item.sizeScale ?? 0} cm
           </label>
           <input
             type="range"
@@ -121,9 +121,9 @@ export const DoorWindowEditor: React.FC<Props> = ({ item, update }) => {
             title="Størrelse (cm)"
           />
           <div className="relative h-4 mt-1 text-[11px] text-gray-500 select-none">
-            <span className="absolute left-0">50 cm</span>
-            <span className="absolute left-1/2 -translate-x-1/2">100 cm</span>
-            <span className="absolute right-0">150 cm</span>
+            <span className="absolute left-0">0 cm</span>
+            <span className="absolute left-1/2 -translate-x-1/2">50 cm</span>
+            <span className="absolute right-0">100 cm</span>
           </div>
         </div>
       </div>
