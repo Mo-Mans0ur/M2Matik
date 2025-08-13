@@ -2,30 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { FaPaintRoller, FaBath, FaDoorOpen } from "react-icons/fa";
 import { GiBrickWall } from "react-icons/gi";
 import {
-  MdOutlineRoofing,
   MdBalcony,
+  MdOutlineRoofing,
   MdHouseSiding,
-  MdOutlineElectricalServices,
   MdKitchen,
+  MdOutlineElectricalServices,
 } from "react-icons/md";
 import { RiLayoutGridLine } from "react-icons/ri";
 import { FaHouseFire } from "react-icons/fa6";
-import {
-  loadProjectMeta,
-  saveProjectMeta,
-  type ProjectMeta,
-} from "../lib/storage";
-import {
-  BASE_DATE,
-  ANNUAL_ADJUSTMENT,
-  perM2,
-  doorWindowBase,
-  kitchenBase,
-  kitchenExtraNewPlacement,
-  newUID,
-  formatKr,
-  smartRound,
-} from "./renovationTypes";
 import PaintingEditor from "../components/editors/PaintingEditor";
 import FloorEditor from "../components/editors/FloorEditor";
 import BathEditor from "../components/editors/BathEditor";
@@ -38,7 +22,25 @@ import HeatingEditor from "../components/editors/HeatingEditor";
 import ElectricityEditor from "../components/editors/ElectricityEditor";
 import KitchenEditor from "../components/editors/KitchenEditor";
 import InfoTooltip from "../components/InfoTooltip";
+import { loadProjectMeta, saveProjectMeta } from "../lib/storage";
+import type { ProjectMeta } from "../lib/storage";
 import type { AnyItem, ItemDøreVinduer } from "./renovationTypes";
+import {
+  BASE_DATE,
+  ANNUAL_ADJUSTMENT,
+  newUID,
+  perM2,
+  formatKr,
+  smartRound,
+} from "./renovationTypes";
+import {
+  loadPricingFromExcel,
+  qualityToLabel,
+  calcBaseTotal,
+  calcExtrasTotal,
+  UI_TO_EXCEL_KEY,
+} from "../pricing/excel";
+import type { BaseMap, ExtrasMap } from "../pricing/excel";
 
 // ---------- Komponent ----------
 export default function RenovationWithList() {
@@ -54,6 +56,32 @@ export default function RenovationWithList() {
 
   // Projekt liste med individuelle poster
   const [items, setItems] = useState<AnyItem[]>([]);
+
+  // Excel pricing
+  const [excelBase, setExcelBase] = useState<BaseMap | null>(null);
+  const [excelExtras, setExcelExtras] = useState<ExtrasMap | null>(null);
+  // no explicit ready flag; we treat null base/extras as not-yet-loaded
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const { base, extras } = await loadPricingFromExcel();
+        if (!mounted) return;
+        setExcelBase(base);
+        setExcelExtras(extras);
+      } catch (e) {
+        console.warn("Failed to load Excel pricing:", e);
+        setExcelBase({});
+        setExcelExtras({});
+      } finally {
+        // noop
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   // Hent meta (areal, kælder, 1. sal)
   useEffect(() => {
@@ -143,18 +171,6 @@ export default function RenovationWithList() {
     },
   ] as const;
 
-  // Hvor mange af hver type er valgt
-  const typeCounts = useMemo(() => {
-    const acc: Record<string, number> = {};
-    items.forEach((it) => {
-      acc[it.typeId] = (acc[it.typeId] || 0) + 1;
-    });
-    return acc;
-  }, [items]);
-
-  // Standard satser
-  // (satser importeret fra renovationTypes)
-
   // Auto + manuel prisjustering
   const yearsSinceBase = () =>
     (new Date().getTime() - BASE_DATE.getTime()) / (1000 * 60 * 60 * 24 * 365);
@@ -163,12 +179,9 @@ export default function RenovationWithList() {
   const manualFactor =
     1 + (isNaN(manualAdjustment) ? 0 : manualAdjustment) / 100;
 
-  // newUID importeret
-
-  // Når man klikker et kort -> opret en ny post med default værdier for den type
+  // Tilføj en ny post ud fra kortvalg
   const addItem = (typeId: AnyItem["typeId"]) => {
     const label = options.find((o) => o.id === typeId)?.label || typeId;
-
     let item: AnyItem;
     switch (typeId) {
       case "maling":
@@ -197,6 +210,7 @@ export default function RenovationWithList() {
           label,
           bathPlacement: "same",
           count: 1,
+          bathQuality: 1,
         };
         break;
       case "døreOgVinduer":
@@ -210,7 +224,7 @@ export default function RenovationWithList() {
           count: 1,
           quality: 1,
           sizeScale: 50,
-        };
+        } as any;
         break;
       case "terrasse":
         item = {
@@ -219,7 +233,7 @@ export default function RenovationWithList() {
           label,
           area: 0,
           extra: {},
-        };
+        } as any;
         break;
       case "roof":
         item = {
@@ -235,7 +249,7 @@ export default function RenovationWithList() {
             efterisolering: false,
             kviste: 0,
           },
-        };
+        } as any;
         break;
       case "Facade":
         item = {
@@ -244,7 +258,7 @@ export default function RenovationWithList() {
           label,
           finish: "male",
           afterIso: false,
-        };
+        } as any;
         break;
       case "walls":
         item = {
@@ -256,7 +270,7 @@ export default function RenovationWithList() {
           demoIndvendig: false,
           nyLet: false,
           nyBærende: false,
-        };
+        } as any;
         break;
       case "heating":
         item = {
@@ -264,7 +278,7 @@ export default function RenovationWithList() {
           typeId,
           label,
           system: "radiator",
-        };
+        } as any;
         break;
       case "el":
         item = {
@@ -276,7 +290,7 @@ export default function RenovationWithList() {
           newPanel: false,
           hiddenRuns: false,
           evCharger: false,
-        };
+        } as any;
         break;
       case "køkken":
         item = {
@@ -285,7 +299,7 @@ export default function RenovationWithList() {
           label,
           placement: "same",
           quality: 1,
-        };
+        } as any;
         break;
       default:
         return;
@@ -314,14 +328,49 @@ export default function RenovationWithList() {
 
     switch (it.typeId) {
       case "maling": {
-        const qFactor =
-          it.paintQuality === 0 ? 1 : it.paintQuality === 1 ? 1.2 : 1.5;
+        // Excel-driven painting: base scaled by coverage and quality
         const coverage =
           Math.max(0, Math.min(100, (it as any).coveragePercent ?? 100)) / 100;
-        price += Math.round(AREA * perM2.maling * qFactor * coverage);
-        if (it.extras.træværk) price += 2000;
-        if (it.extras.paneler) price += 1500;
-        if (it.extras.stuk) price += 2500;
+        const areaCovered = AREA * coverage;
+        const row = excelBase?.[UI_TO_EXCEL_KEY.maling || "maling"];
+        if (!row)
+          console.warn("No Excel row for painting", {
+            key: UI_TO_EXCEL_KEY.maling,
+          });
+        const qLbl = qualityToLabel((it.paintQuality ?? 1) as 0 | 1 | 2);
+        price += calcBaseTotal(row, areaCovered, qLbl);
+
+        // Independent tasks: Høje paneler and Stuk use their own area & quality
+        const baseMap = excelBase || {};
+        const getRow = (name: string) => {
+          const normLocal = (s: string) =>
+            String(s || "")
+              .toLowerCase()
+              .normalize("NFD")
+              .replace(/\p{Diacritic}/gu, "")
+              .replace(/\s+/g, "")
+              .replace(/[^a-z0-9_.-]/g, "");
+          return baseMap[normLocal(name)];
+        };
+
+        // Træværk as a simple extra proportional to painted area (kept as before)
+        if (it.extras?.træværk) {
+          const rowTv = getRow("Træværk");
+          if (rowTv) price += calcBaseTotal(rowTv, areaCovered, qLbl);
+        }
+
+        // Høje paneler: pris beregnes uafhængigt af coverage, med fuldt areal og samme kvalitet som maling
+        if (it.extras?.paneler) {
+          const rowP = getRow("Høje paneler") || getRow("Paneler");
+          if (rowP) price += calcBaseTotal(rowP, AREA, qLbl);
+        }
+
+        // Stuk
+        if (it.extras?.stuk) {
+          const rowS = getRow("Stuk");
+          // Stuk often priced per m2 of ceiling/walls; default to full AREA
+          if (rowS) price += calcBaseTotal(rowS, AREA, qLbl);
+        }
         break;
       }
       case "gulv": {
@@ -332,19 +381,25 @@ export default function RenovationWithList() {
         break;
       }
       case "bad": {
-        const BASE_BATH = 50000;
-        const RELOC = 2500;
+        // Bathroom pricing: start 250,000, quality factors (0.8/1.0/1.2); no m² component
         const n = Math.max(0, Math.min(5, (it as any).count ?? 1));
-        price += (BASE_BATH + (it.bathPlacement === "new" ? RELOC : 0)) * n;
+        const q = (it as any).bathQuality ?? 1; // 0|1|2
+        const factor = q === 0 ? 0.8 : q === 2 ? 1.2 : 1.0;
+        const baseOne = Math.max(0, Math.round(250000 * factor));
+        price += baseOne * n;
+        if (it.bathPlacement === "new") {
+          // Fixed extra 25,000 per bathroom for new placement
+          price += 25000 * n;
+        }
         break;
       }
       case "døreOgVinduer": {
-        // Backwards compatibility: map legacy variant -> new fields if present
+        // Per unit: 20.000 kr. pr. stk med kvalitetsfaktor (lav 0,8 | mid 1,0 | høj 2,0) + evt. 'nyt hul' ekstra
         const doorWin = it as unknown as Partial<ItemDøreVinduer> & {
           count: number;
           choice: "door" | "window";
         };
-        const { choice } = doorWin;
+        // choice not used in fixed 'nyt hul' model
         let operation = doorWin.operation;
         let newInstall = doorWin.newInstall;
         const legacyVariant = doorWin.variant as
@@ -362,25 +417,16 @@ export default function RenovationWithList() {
           if (legacyVariant === "newDoor") newInstall = "door";
           if (legacyVariant === "newWindow") newInstall = "window";
         }
-        // Pris skal følge LINJE 3 (det nye der monteres). Fallback til LINJE 1 hvis LINJE 3 mangler.
-        const installType = newInstall || choice;
-        const unit =
-          installType === "door" ? doorWindowBase.door : doorWindowBase.window;
-        // Ekstra for nyt hul afhænger af hvad der skabes hul til (installType)
-        const holeExtra =
-          operation === "newHole"
-            ? installType === "door"
-              ? doorWindowBase.extraForNewHoleDoor
-              : doorWindowBase.extraForNewHoleWindow
-            : 0;
-        // Juster for kvalitet og størrelse (0-100) som ±20% hver
-        const q = (it as any).quality ?? 1; // 0,1,2
-        const s = (it as any).sizeScale ?? 50;
-        const qualityFactor = q === 0 ? 1 : q === 1 ? 1.15 : 1.35;
-        const sizeFactor = 1 + ((s - 50) / 50) * 0.2; // 0..100 -> 0.8..1.2
-        price +=
-          Math.round((unit + holeExtra) * qualityFactor * sizeFactor) *
-          Math.max(1, doorWin.count);
+        // installType no longer needed since 'nyt hul' is a fixed amount
+        const q = ((it as any).quality ?? 1) as 0 | 1 | 2;
+        const factor = q === 0 ? 0.8 : q === 2 ? 2.0 : 1.0;
+        let unit = Math.round(20000 * factor);
+        if (operation === "newHole") {
+          // Fast tillæg ved nyt hul: 40.000 kr pr. enhed
+          unit += 40000;
+        }
+        // Pris pr. stk: 20.000 × kvalitetsfaktor × antal (uden størrelsesfaktor)
+        price += Math.round(unit) * Math.max(0, doorWin.count || 0);
         break;
       }
       case "terrasse": {
@@ -394,25 +440,32 @@ export default function RenovationWithList() {
         break;
       }
       case "roof": {
-        // Baseline for tag ud fra kvalitet
-        const pitch = Math.max(0, Math.min(45, (it as any).roofPitch || 0));
-        const q = (it as any).roofQuality ?? 0; // 0=tagpap, 1=beton, 2=vinge
-        const basePerM2 = q === 0 ? 1000 : q === 1 ? 1400 : 1700;
-        price += AREA * basePerM2;
-
-        // pitch påvirker kompleksitet: +1% pr. 5°
-        price = Math.round(price * (1 + pitch / 500)); // 45° => +9%
-
-        // Tilvalg
+        // Roof pricing: base (fladt) start 30.000 + 2.500 kr/m² with quality factors (lav 0,7 | mid 1,0 | høj 2,0)
+        // Extras explicitly per spec: saddeltag ×1.2, valmtag ×1.2, efterisolering +2000/m², kviste +80.000/stk.
+        const q: 0 | 1 | 2 = ((it as any).roofQuality ?? 0) as 0 | 1 | 2;
         const ex = (it as any).extras || {};
-        if (ex.saddeltag) price += Math.round(AREA * 100); // lille premium
-        if (ex.valm) price += Math.round(AREA * 150); // lidt dyrere udformning
-        if (ex.undertag) price += Math.round(AREA * 120);
-        if (ex.efterisolering) price += Math.round(AREA * 150);
-        if ((ex.kviste || 0) > 0) price += (ex.kviste || 0) * 1000;
-
-        // fallback "fra" hvis ikke sat (burde ikke ske da basePerM2 altid er sat)
-        if (price === 0) price += AREA * 1000;
+        const baseRow = {
+          key: "tag",
+          startpris: 30000,
+          m2pris: 2500,
+          faktorLav: 0.7,
+          faktorHøj: 2.0,
+        } as const;
+        let subtotal = calcBaseTotal(baseRow as any, AREA, qualityToLabel(q));
+        // multiplicative extras
+        let mult = 1;
+        if (ex.saddeltag) mult *= 1.2;
+        if (ex.valm) mult *= 1.2;
+        subtotal *= mult;
+        // additive extras
+        let add = 0;
+        if (ex.efterisolering) add += 2000 * AREA;
+        const dormers = Number(ex.kviste || 0);
+        if (dormers > 0) add += 80000 * dormers;
+        // Pitch factor: 0° -> 1.0, 45° -> 2.0 (linear)
+        const pitch = Math.max(0, Math.min(45, (it as any).roofPitch || 0));
+        const pitchFactor = 1 + (pitch / 45) * (2 - 1);
+        price += Math.round((subtotal + add) * pitchFactor);
         break;
       }
       case "Facade": {
@@ -439,20 +492,26 @@ export default function RenovationWithList() {
         break;
       }
       case "el": {
-        const s = (it as any).stikCount ?? 0;
-        let elBase = it.outletCount * 350 + s * 300;
-        if (it.newPanel) elBase += 5000;
-        if (it.hiddenRuns) elBase += Math.round(elBase * 1.25);
-        if ((it as any).evCharger) elBase += 9000;
-        price += Math.max(elBase, 8000); // baseline
+        // Electrician: fixed base 20,000; 'Ny tavle' fixed 30,000; keep other extras from Excel if present
+        price += 20000;
+        if (it.newPanel) price += 30000;
+        const elExtras = excelExtras?.[UI_TO_EXCEL_KEY.el || "elektriker"]; // try category
+        const picked: string[] = [];
+        // Exclude 'Ny tavle' here to avoid double counting as we add it fixed above
+        if ((it as any).evCharger) picked.push("Bil lader");
+        if (it.hiddenRuns) picked.push("Skjulte føringer");
+        if (elExtras && picked.length)
+          price += calcExtrasTotal(elExtras, AREA, picked);
         break;
       }
       case "køkken": {
-        const quality = (it as any).quality ?? 0; // 0 IKEA, 1 Hack, 2 Snedker
-        const qualityFactor = quality === 0 ? 1 : quality === 1 ? 1.3 : 1.8;
-        price +=
-          Math.round(kitchenBase * qualityFactor) +
-          (it.placement === "new" ? kitchenExtraNewPlacement : 0);
+        const q: 0 | 1 | 2 = ((it as any).quality ?? 1) as 0 | 1 | 2;
+        const factor = q === 0 ? 0.3 : q === 2 ? 2.0 : 1.0;
+        price += Math.round(300000 * factor);
+        if (it.placement === "new") {
+          // Fixed extra 25,000 for new placement (same rule as bathroom)
+          price += 25000;
+        }
         break;
       }
     }
@@ -461,31 +520,49 @@ export default function RenovationWithList() {
     return Math.max(0, price);
   };
 
+  // Antal pr. type til badge på kort
+  const typeCounts = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const it of items) map[it.typeId] = (map[it.typeId] || 0) + 1;
+    return map;
+  }, [items]);
+
   // Badge "Fra"-pris til kort (grove defaults)
   const getCardFromPrice = (typeId: AnyItem["typeId"]): number => {
     switch (typeId) {
       case "maling":
-        return Math.round(AREA * perM2.maling);
+        // fixed "Fra" price for painting
+        return 5000;
       case "gulv":
-        return Math.round(AREA * perM2.gulv);
+        // not finalized yet
+        return 0;
       case "bad":
-        return 50000;
+        // new model: base per bathroom
+        return 250000;
       case "døreOgVinduer":
-        return doorWindowBase.door;
+        // new model: per unit baseline (mid quality)
+        return 20000;
       case "terrasse":
-        return 12000;
+        // not finalized yet
+        return 0;
       case "roof":
-        return Math.round(AREA * 1000); // baseline med tagpap
+        // new model baseline (mid quality, pitch 0)
+        return Math.max(0, 30000 + 2500 * AREA);
       case "Facade":
-        return AREA * 250 + 5000;
+        // not finalized yet
+        return 0;
       case "walls":
-        return 7000;
+        // not finalized yet
+        return 0;
       case "heating":
-        return 8000;
+        // not finalized yet
+        return 0;
       case "el":
-        return 8000;
+        // new model base
+        return 20000;
       case "køkken":
-        return kitchenBase;
+        // new model base
+        return 300000;
       default:
         return 0;
     }

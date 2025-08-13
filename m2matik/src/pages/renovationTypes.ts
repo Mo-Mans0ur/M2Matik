@@ -39,6 +39,7 @@ export type ItemBad = ItemBase & {
   typeId: "bad";
   bathPlacement: "same" | "new";
   count: number; // antal badeværelser (0-5)
+  bathQuality?: 0 | 1 | 2; // 0=IKEA (lav), 1=Hack (normal), 2=Snedker (høj)
 };
 
 export type ItemDøreVinduer = ItemBase & {

@@ -66,9 +66,9 @@ export const DoorWindowEditor: React.FC<Props> = ({ item, update }) => {
         Antal:
         <input
           type="number"
-          min={1}
+          min={0}
           value={item.count}
-          onChange={(e) => update("count", Math.max(1, Number(e.target.value)))}
+          onChange={(e) => update("count", Math.max(0, Number(e.target.value)))}
           className="w-16 px-1 py-0.5 border rounded text-sm"
           title="Antal døre eller vinduer"
         />

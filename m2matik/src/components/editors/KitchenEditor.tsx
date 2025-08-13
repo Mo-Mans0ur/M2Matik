@@ -12,7 +12,7 @@ export const KitchenEditor: React.FC<Props> = ({ item, update }) => (
       {(
         [
           { key: "same", label: "Samme placering" },
-          { key: "new", label: "Ny placering (+20.000 kr.)" },
+          { key: "new", label: "Ny placering (+25.000 kr.)" },
         ] as const
       ).map((opt) => (
         <label key={opt.key} className="inline-flex items-center gap-2">

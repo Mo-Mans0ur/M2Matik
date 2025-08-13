@@ -73,6 +73,7 @@ export const PaintingEditor: React.FC<Props> = ({ item, update }) => {
           </label>
         ))}
       </div>
+      {/* Høje paneler beregnes automatisk med samme kvalitet som maling og fuldt areal */}
     </div>
   );
 };
