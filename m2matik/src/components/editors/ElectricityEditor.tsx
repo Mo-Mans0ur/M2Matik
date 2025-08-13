@@ -7,7 +7,7 @@ interface Props {
   update: (key: string, val: unknown) => void;
 }
 export const ElectricityEditor: React.FC<Props> = ({ item, update }) => (
-  <div className="space-y-2">
+  <div className="space-y-3">
     <label className="block text-sm text-gray-600 flex items-center gap-2">
       <span>Antal afbrydere + udtag: {item.outletCount}</span>
       <InfoTooltip text="Et udtag er et tilslutningspunkt i væg/loft til fx lampe eller stikkontakt." />

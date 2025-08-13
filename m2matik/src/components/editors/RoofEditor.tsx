@@ -107,17 +107,19 @@ export const RoofEditor: React.FC<Props> = ({ item, update }) => {
       </div>
 
       <div className="space-y-2">
-        <label className="text-xs font-medium">Antal kviste</label>
-        <input
-          aria-label="Antal kviste"
-          type="number"
-          min={0}
-          value={extras.kviste ?? 0}
-          onChange={(e) =>
-            updateExtra("kviste", Math.max(0, Number(e.target.value)))
-          }
-          className="border rounded px-3 py-2 w-28 text-sm"
-        />
+        <label className="text-xs font-medium flex items-center gap-2">
+          Antal kviste
+          <input
+            aria-label="Antal kviste"
+            type="number"
+            min={0}
+            value={extras.kviste ?? 0}
+            onChange={(e) =>
+              updateExtra("kviste", Math.max(0, Number(e.target.value)))
+            }
+            className="border rounded px-3 py-2 w-28 text-sm"
+          />
+        </label>
       </div>
     </div>
   );

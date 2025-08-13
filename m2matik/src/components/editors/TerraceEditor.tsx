@@ -10,19 +10,19 @@ export const TerraceEditor: React.FC<Props> = ({ item, update }) => (
     <div>
       <label
         htmlFor={`terrace_area_${item.uid}`}
-        className="block text-sm text-gray-600 mb-1"
+        className="text-sm text-gray-600 flex items-center gap-2"
       >
         Størrelse (m²)
+        <input
+          id={`terrace_area_${item.uid}`}
+          type="number"
+          min={0}
+          value={item.area}
+          onChange={(e) => update("area", Math.max(0, Number(e.target.value)))}
+          className="w-28 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+          placeholder="0"
+        />
       </label>
-      <input
-        id={`terrace_area_${item.uid}`}
-        type="number"
-        min={0}
-        value={item.area}
-        onChange={(e) => update("area", Math.max(0, Number(e.target.value)))}
-        className="w-28 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-        placeholder="0"
-      />
     </div>
     <div className="flex flex-wrap gap-4 text-sm">
       {(

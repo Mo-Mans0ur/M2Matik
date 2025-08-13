@@ -1028,18 +1028,18 @@ export default function RenovationWithList() {
 
             {/* Manuel justering */}
             <div className="mt-4">
-              <label className="text-[11px] sm:text-xs text-gray-600">
+              <label className="text-[11px] sm:text-xs text-gray-600 flex items-center gap-2">
                 Manuel prisjustering (%)
+                <input
+                  type="number"
+                  value={manualAdjustment}
+                  onChange={(e) =>
+                    setManualAdjustment(parseInt(e.target.value) || 0)
+                  }
+                  className="w-24 text-center border rounded p-1 text-xs sm:text-sm"
+                  placeholder="0"
+                />
               </label>
-              <input
-                type="number"
-                value={manualAdjustment}
-                onChange={(e) =>
-                  setManualAdjustment(parseInt(e.target.value) || 0)
-                }
-                className="mt-1 w-24 text-center border rounded p-1 text-xs sm:text-sm"
-                placeholder="0"
-              />
             </div>
           </aside>
         </div>
