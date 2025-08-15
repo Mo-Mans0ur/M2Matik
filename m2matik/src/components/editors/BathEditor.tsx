@@ -53,7 +53,9 @@ export const BathEditor: React.FC<Props> = ({ item, update }) => (
       const q = Math.max(0, Math.min(4, item.bathQuality ?? 2));
       const qName = ["Budget", "Basis", "Standard", "Premium", "Eksklusiv"][q];
       return (
-        <label className="block text-sm text-gray-600">Kvalitet ({qName})</label>
+        <label className="block text-sm text-gray-600">
+          Kvalitet ({qName})
+        </label>
       );
     })()}
     <input

@@ -19,6 +19,17 @@ input[type="range"] {
   padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
 }
 
+/* Height spacer for fixed mobile bottom bar incl. safe area */
+/* Prefer padding on the scroll container instead of spacers */
+.pb-bottom-safe {
+  padding-bottom: calc(88px + env(safe-area-inset-bottom));
+}
+
+/* Dynamic bottom padding driven by CSS var --bottom-bar-h */
+.pb-dynamic {
+  padding-bottom: var(--bottom-bar-h, 88px);
+}
+
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;

@@ -8,7 +8,9 @@ interface Props {
 
 export const PaintingEditor: React.FC<Props> = ({ item, update }) => {
   const q = Math.max(0, Math.min(4, item.paintQuality ?? 2));
-  const qualityName = ["Budget", "Basis", "Standard", "Premium", "Eksklusiv"][q];
+  const qualityName = ["Budget", "Basis", "Standard", "Premium", "Eksklusiv"][
+    q
+  ];
   return (
     <div className="space-y-2">
       <label className="block text-sm text-gray-600">
@@ -28,7 +30,9 @@ export const PaintingEditor: React.FC<Props> = ({ item, update }) => {
         title="Maledækning i %"
       />
       <div className="h-px bg-gray-200 my-2" />
-  <label className="block text-sm text-gray-600">Kvalitet ({qualityName})</label>
+      <label className="block text-sm text-gray-600">
+        Kvalitet ({qualityName})
+      </label>
       <input
         type="range"
         min={0}

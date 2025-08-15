@@ -6,7 +6,11 @@ export type JsonPrice = {
   faktorHøj: number;
 };
 
-export type ExtraItem = { name: string; kind: "fixed" | "per_m2"; amount: number };
+export type ExtraItem = {
+  name: string;
+  kind: "fixed" | "per_m2";
+  amount: number;
+};
 
 export type JsonData = {
   base: Record<string, JsonPrice>;
@@ -21,7 +25,9 @@ function warnOnce(key: string, msg: string) {
   console.warn(`[priser.json] ${msg}`, key);
 }
 
-export async function loadPricesJson(url = "/data/priser.json"): Promise<JsonData> {
+export async function loadPricesJson(
+  url = "/data/priser.json"
+): Promise<JsonData> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Failed to fetch ${url}`);
   return (await res.json()) as JsonData;
@@ -40,8 +46,14 @@ export function baseTotal(
     faktorNormal: 1,
     faktorHøj: 1,
   };
-  if (!p && keyForLog) warnOnce(keyForLog, "Missing base price; defaulting to 0/1 values");
-  const faktor = factorKind === "lav" ? price.faktorLav : factorKind === "høj" ? price.faktorHøj : price.faktorNormal;
+  if (!p && keyForLog)
+    warnOnce(keyForLog, "Missing base price; defaulting to 0/1 values");
+  const faktor =
+    factorKind === "lav"
+      ? price.faktorLav
+      : factorKind === "høj"
+      ? price.faktorHøj
+      : price.faktorNormal;
   const total = price.startpris + Math.max(0, areaM2) * price.m2pris * faktor;
   return Math.max(0, Math.round(total));
 }
@@ -68,7 +80,8 @@ export function extrasTotal(
     if (e.kind === "fixed") total += e.amount;
     if (e.kind === "per_m2") total += e.amount * Math.max(0, areaM2);
   }
-  if (total === 0 && keyForLog) warnOnce(keyForLog, "Picked extras but none matched; defaulting to 0");
+  if (total === 0 && keyForLog)
+    warnOnce(keyForLog, "Picked extras but none matched; defaulting to 0");
   return Math.max(0, Math.round(total));
 }
 

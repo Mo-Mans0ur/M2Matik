@@ -47,8 +47,12 @@ export const RoofEditor: React.FC<Props> = ({ item, update }) => {
       {/* Kvalitet */}
       <div className="space-y-2">
         {(() => {
-          const name = ["Budget", "Basis", "Standard", "Premium", "Eksklusiv"][Math.max(0, Math.min(4, q))];
-          return <label className="text-xs font-medium">Kvalitet ({name})</label>;
+          const name = ["Budget", "Basis", "Standard", "Premium", "Eksklusiv"][
+            Math.max(0, Math.min(4, q))
+          ];
+          return (
+            <label className="text-xs font-medium">Kvalitet ({name})</label>
+          );
         })()}
         <input
           type="range"

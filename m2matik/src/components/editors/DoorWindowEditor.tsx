@@ -64,9 +64,17 @@ export const DoorWindowEditor: React.FC<Props> = ({ item, update }) => {
         <div>
           {(() => {
             const q = Math.max(0, Math.min(4, item.quality ?? 2));
-            const name = ["Budget", "Basis", "Standard", "Premium", "Eksklusiv"][q];
+            const name = [
+              "Budget",
+              "Basis",
+              "Standard",
+              "Premium",
+              "Eksklusiv",
+            ][q];
             return (
-              <label className="block text-xs text-gray-600">Kvalitet ({name})</label>
+              <label className="block text-xs text-gray-600">
+                Kvalitet ({name})
+              </label>
             );
           })()}
           <input

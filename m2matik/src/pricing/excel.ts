@@ -164,7 +164,8 @@ export async function loadPricingFromExcel(
       const cat = norm("døre og vinduer");
       if (!extras[cat]) extras[cat] = [];
       const val = m2pris > 0 ? m2pris : startpris; // treat as fixed per-unit add-on
-      if (val > 0) extras[cat].push({ name: rawName, kind: "fixed", amount: val });
+      if (val > 0)
+        extras[cat].push({ name: rawName, kind: "fixed", amount: val });
     }
   }
 
@@ -185,8 +186,10 @@ export async function loadPricingFromExcel(
         key: norm("tag"),
         startpris: isFinite(startpris) ? startpris : 0,
         m2pris: isFinite(m2pris) ? m2pris : 0,
-        faktorLav: isFinite(faktorLav) && faktorLav !== 0 ? faktorLav : undefined,
-        faktorHøj: isFinite(faktorHøj) && faktorHøj !== 0 ? faktorHøj : undefined,
+        faktorLav:
+          isFinite(faktorLav) && faktorLav !== 0 ? faktorLav : undefined,
+        faktorHøj:
+          isFinite(faktorHøj) && faktorHøj !== 0 ? faktorHøj : undefined,
       };
       continue;
     }
@@ -202,8 +205,10 @@ export async function loadPricingFromExcel(
         key: norm("terrasse"),
         startpris: isFinite(startpris) ? startpris : 0,
         m2pris: isFinite(m2pris) ? m2pris : 0,
-        faktorLav: isFinite(faktorLav) && faktorLav !== 0 ? faktorLav : undefined,
-        faktorHøj: isFinite(faktorHøj) && faktorHøj !== 0 ? faktorHøj : undefined,
+        faktorLav:
+          isFinite(faktorLav) && faktorLav !== 0 ? faktorLav : undefined,
+        faktorHøj:
+          isFinite(faktorHøj) && faktorHøj !== 0 ? faktorHøj : undefined,
       };
       continue;
     }
@@ -219,8 +224,10 @@ export async function loadPricingFromExcel(
         key: norm("gulv"),
         startpris: isFinite(startpris) ? startpris : 0,
         m2pris: isFinite(m2pris) ? m2pris : 0,
-        faktorLav: isFinite(faktorLav) && faktorLav !== 0 ? faktorLav : undefined,
-        faktorHøj: isFinite(faktorHøj) && faktorHøj !== 0 ? faktorHøj : undefined,
+        faktorLav:
+          isFinite(faktorLav) && faktorLav !== 0 ? faktorLav : undefined,
+        faktorHøj:
+          isFinite(faktorHøj) && faktorHøj !== 0 ? faktorHøj : undefined,
       };
       continue;
     }
@@ -232,32 +239,60 @@ export async function loadPricingFromExcel(
       const m2Val = parseDkNumber(m2Idx >= 0 ? row[m2Idx] : 0);
       // Heuristics: small values in m2 column around 1-3 are factors
       const factorCandidate = m2Val && m2Val >= 0.9 && m2Val <= 5 ? m2Val : 0;
-      const isKvist = name.includes(norm("kvist")) || name.includes(norm("kviste"));
+      const isKvist =
+        name.includes(norm("kvist")) || name.includes(norm("kviste"));
       if (factorCandidate) {
-        extras[norm("tag")].push({ name: rawName, kind: "factor", amount: factorCandidate });
+        extras[norm("tag")].push({
+          name: rawName,
+          kind: "factor",
+          amount: factorCandidate,
+        });
       }
       if (isKvist) {
         const val = startVal > 0 ? startVal : m2Val;
         if (val > 0)
-          extras[norm("tag")].push({ name: rawName, kind: "fixed", amount: val });
+          extras[norm("tag")].push({
+            name: rawName,
+            kind: "fixed",
+            amount: val,
+          });
       } else {
         if (startVal > 0)
-          extras[norm("tag")].push({ name: rawName, kind: "fixed", amount: startVal });
+          extras[norm("tag")].push({
+            name: rawName,
+            kind: "fixed",
+            amount: startVal,
+          });
         if (!factorCandidate && m2Val > 0)
-          extras[norm("tag")].push({ name: rawName, kind: "per_m2", amount: m2Val });
+          extras[norm("tag")].push({
+            name: rawName,
+            kind: "per_m2",
+            amount: m2Val,
+          });
       }
       continue;
     }
 
     // Terrace factor extras: e.g., 'faktor ved hævet', 'faktor  ved værn'
-    if (name.includes(norm("faktor")) && (name.includes(norm("hæv")) || name.includes(norm("haev")) || name.includes(norm("værn")) || name.includes(norm("vaern")))) {
+    if (
+      name.includes(norm("faktor")) &&
+      (name.includes(norm("hæv")) ||
+        name.includes(norm("haev")) ||
+        name.includes(norm("værn")) ||
+        name.includes(norm("vaern")))
+    ) {
       if (!extras[norm("terrasse")]) extras[norm("terrasse")] = [];
       const m2Val = parseDkNumber(m2Idx >= 0 ? row[m2Idx] : 0);
       const startVal = parseDkNumber(startIdx >= 0 ? row[startIdx] : 0);
       const factorCandidate = m2Val && m2Val >= 0.9 && m2Val <= 5 ? m2Val : 0;
-      const amount = factorCandidate || (startVal >= 0.9 && startVal <= 5 ? startVal : 0);
+      const amount =
+        factorCandidate || (startVal >= 0.9 && startVal <= 5 ? startVal : 0);
       if (amount)
-        extras[norm("terrasse")].push({ name: rawName, kind: "factor", amount });
+        extras[norm("terrasse")].push({
+          name: rawName,
+          kind: "factor",
+          amount,
+        });
       continue;
     }
 
@@ -267,21 +302,40 @@ export async function loadPricingFromExcel(
       const startVal = parseDkNumber(startIdx >= 0 ? row[startIdx] : 0);
       const m2Val = parseDkNumber(m2Idx >= 0 ? row[m2Idx] : 0);
       if (startVal > 0)
-        extras[norm("terrasse")].push({ name: rawName, kind: "fixed", amount: startVal });
+        extras[norm("terrasse")].push({
+          name: rawName,
+          kind: "fixed",
+          amount: startVal,
+        });
       if (m2Val > 0)
-        extras[norm("terrasse")].push({ name: rawName, kind: "per_m2", amount: m2Val });
+        extras[norm("terrasse")].push({
+          name: rawName,
+          kind: "per_m2",
+          amount: m2Val,
+        });
       continue;
     }
 
     // Floor extra: e.g., 'tillæg gulvvarme'
-    if (name.includes(norm("gulvvarme")) || (name.includes(norm("gulv")) && name.includes(norm("varme")))) {
+    if (
+      name.includes(norm("gulvvarme")) ||
+      (name.includes(norm("gulv")) && name.includes(norm("varme")))
+    ) {
       if (!extras[norm("gulv")]) extras[norm("gulv")] = [];
       const startVal = parseDkNumber(startIdx >= 0 ? row[startIdx] : 0);
       const m2Val = parseDkNumber(m2Idx >= 0 ? row[m2Idx] : 0);
       if (startVal > 0)
-        extras[norm("gulv")].push({ name: rawName, kind: "fixed", amount: startVal });
+        extras[norm("gulv")].push({
+          name: rawName,
+          kind: "fixed",
+          amount: startVal,
+        });
       if (m2Val > 0)
-        extras[norm("gulv")].push({ name: rawName, kind: "per_m2", amount: m2Val });
+        extras[norm("gulv")].push({
+          name: rawName,
+          kind: "per_m2",
+          amount: m2Val,
+        });
       continue;
     }
   }
@@ -298,7 +352,12 @@ export async function loadPricingFromExcel(
     if (!(okStart && okM2 && okLav && okHoj)) {
       console.warn("Excel painting row differs from expected defaults", {
         got: maling,
-        expected: { startpris: 5000, m2pris: 1400, faktorLav: "~0.6", faktorHøj: "~1.4" },
+        expected: {
+          startpris: 5000,
+          m2pris: 1400,
+          faktorLav: "~0.6",
+          faktorHøj: "~1.4",
+        },
       });
     }
   }
@@ -325,8 +384,18 @@ export function calcBaseTotal(
   quality: FaktorLabel
 ) {
   const r: ExcelPriceRow = row || { key: "", startpris: 0, m2pris: 0 };
-  const factor = quality === "lav" ? r.faktorLav ?? 1 : quality === "høj" ? r.faktorHøj ?? 1 : 1;
-  const total = Math.max(0, Math.round((r.startpris || 0) + Math.max(0, areaM2) * (r.m2pris || 0) * factor));
+  const factor =
+    quality === "lav"
+      ? r.faktorLav ?? 1
+      : quality === "høj"
+      ? r.faktorHøj ?? 1
+      : 1;
+  const total = Math.max(
+    0,
+    Math.round(
+      (r.startpris || 0) + Math.max(0, areaM2) * (r.m2pris || 0) * factor
+    )
+  );
   return total;
 }
 

@@ -34,7 +34,9 @@ export const KitchenEditor: React.FC<Props> = ({ item, update }) => (
         const q = Math.max(0, Math.min(4, item.quality ?? 2));
         const name = ["Budget", "Basis", "Standard", "Premium", "Eksklusiv"][q];
         return (
-          <label className="block text-sm text-gray-600">Kvalitet ({name})</label>
+          <label className="block text-sm text-gray-600">
+            Kvalitet ({name})
+          </label>
         );
       })()}
       <input

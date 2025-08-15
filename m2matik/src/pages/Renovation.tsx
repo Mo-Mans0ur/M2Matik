@@ -36,7 +36,14 @@ import {
   formatKr,
   smartRound,
 } from "./renovationTypes";
-import { loadPricesJson, type JsonData, type JsonPrice, baseTotal, extrasTotal, total as sumTotal } from "../pricing/json";
+import {
+  loadPricesJson,
+  type JsonData,
+  type JsonPrice,
+  baseTotal,
+  extrasTotal,
+  total as sumTotal,
+} from "../pricing/json";
 
 // ---------- Komponent ----------
 export default function RenovationWithList() {
@@ -60,6 +67,8 @@ export default function RenovationWithList() {
   // Track last added item to scroll into view in the project list
   const [lastAddedId, setLastAddedId] = useState<string | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
+  const mainRef = useRef<HTMLElement | null>(null);
+  const barRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -362,9 +371,23 @@ export default function RenovationWithList() {
       fiveStepFactor(idx, row?.faktorLav ?? 1, row?.faktorHøj ?? 1);
 
     // Compute base price with explicit faktor value (keeps startpris outside the faktor)
-    const baseWith = (row: JsonPrice | undefined, area: number, faktor: number) => {
-      const r = row || { startpris: 0, m2pris: 0, faktorLav: 1, faktorNormal: 1, faktorHøj: 1 } as JsonPrice;
-      const total = (r.startpris || 0) + Math.max(0, area) * (r.m2pris || 0) * (faktor || 1);
+    const baseWith = (
+      row: JsonPrice | undefined,
+      area: number,
+      faktor: number
+    ) => {
+      const r =
+        row ||
+        ({
+          startpris: 0,
+          m2pris: 0,
+          faktorLav: 1,
+          faktorNormal: 1,
+          faktorHøj: 1,
+        } as JsonPrice);
+      const total =
+        (r.startpris || 0) +
+        Math.max(0, area) * (r.m2pris || 0) * (faktor || 1);
       return Math.max(0, Math.round(total));
     };
 
@@ -375,12 +398,13 @@ export default function RenovationWithList() {
           Math.max(0, Math.min(100, (it as any).coveragePercent ?? 100)) / 100;
         const areaCovered = AREA * coverage;
         const qIdx = (it.paintQuality ?? 2) as number;
-  const malRow = pricing?.base?.["maling"];
-  price += baseWith(malRow, areaCovered, interpFaktor(qIdx, malRow));
+        const malRow = pricing?.base?.["maling"];
+        price += baseWith(malRow, areaCovered, interpFaktor(qIdx, malRow));
 
         // Independent lines: Høje paneler and Stuk with their own area/quality
         // Treat as separate base entries if present in JSON base, otherwise as painting extras
-  const qFactorFrom = (idx: number, row?: JsonPrice) => interpFaktor(idx, row);
+        const qFactorFrom = (idx: number, row?: JsonPrice) =>
+          interpFaktor(idx, row);
 
         // Træværk: add as additive extra if selected (fixed and/or per m² lines in JSON)
         if ((it as any).extras?.["træværk"]) {
@@ -399,7 +423,12 @@ export default function RenovationWithList() {
             price += baseWith(row, AREA, qFactorFrom(qIdx, row));
           } else {
             // fallback to extras list under maling
-            const add = extrasTotal(pricing?.extras?.["maling"], AREA, ["høje", "paneler"], "maling:høje paneler");
+            const add = extrasTotal(
+              pricing?.extras?.["maling"],
+              AREA,
+              ["høje", "paneler"],
+              "maling:høje paneler"
+            );
             price += add;
           }
         }
@@ -408,7 +437,12 @@ export default function RenovationWithList() {
           if (row) {
             price += baseWith(row, AREA, qFactorFrom(qIdx, row));
           } else {
-            const add = extrasTotal(pricing?.extras?.["maling"], AREA, ["stuk"], "maling:stuk");
+            const add = extrasTotal(
+              pricing?.extras?.["maling"],
+              AREA,
+              ["stuk"],
+              "maling:stuk"
+            );
             price += add;
           }
         }
@@ -435,18 +469,24 @@ export default function RenovationWithList() {
         const row = pricing?.base?.["badeværelse"];
         const sz = Math.max(2, Math.min(12, (it as any).sizeM2 ?? 6));
         const n = Math.max(1, Math.min(5, (it as any).count ?? 1));
-  // Apply faktor to the whole base (startpris + m²-delen)
-  const faktor = interpFaktor(qIdx, row);
-  const baseUnfactored = baseWith(row, sz, 1);
-  let base = Math.round(baseUnfactored * faktor) * n;
+        // Apply faktor to the whole base (startpris + m²-delen)
+        const faktor = interpFaktor(qIdx, row);
+        const baseUnfactored = baseWith(row, sz, 1);
+        let base = Math.round(baseUnfactored * faktor) * n;
         if (it.bathPlacement === "new") {
           // Ny placering tillæg per rum
-          base += extrasTotal(pricing?.extras?.["badeværelse"], 1, ["placering"], "bad:ny placering") * n;
+          base +=
+            extrasTotal(
+              pricing?.extras?.["badeværelse"],
+              1,
+              ["placering"],
+              "bad:ny placering"
+            ) * n;
         }
         price += base;
         break;
       }
-  case "døreOgVinduer": {
+      case "døreOgVinduer": {
         // Per unit base × 5-trins interpoleret faktor (lav..høj) + evt. 'nyt hul' ekstra
         const doorWin = it as unknown as Partial<ItemDøreVinduer> & {
           count: number;
@@ -470,24 +510,34 @@ export default function RenovationWithList() {
           if (legacyVariant === "newDoor") newInstall = "door";
           if (legacyVariant === "newWindow") newInstall = "window";
         }
-  const qIdx = ((it as any).quality ?? 2) as number;
+        const qIdx = ((it as any).quality ?? 2) as number;
         const cnt = Math.max(0, doorWin.count || 0);
-  const row = pricing?.base?.["døreOgVinduer"];
-  let unit = baseWith(row, 1, interpFaktor(qIdx, row));
+        const row = pricing?.base?.["døreOgVinduer"];
+        let unit = baseWith(row, 1, interpFaktor(qIdx, row));
         if (operation === "newHole") {
-          unit += extrasTotal(pricing?.extras?.["døre og vinduer"], 1, ["nyt", "hul"], "døre/vinduer:nyt hul");
+          unit += extrasTotal(
+            pricing?.extras?.["døre og vinduer"],
+            1,
+            ["nyt", "hul"],
+            "døre/vinduer:nyt hul"
+          );
         }
         price += Math.round(unit) * cnt;
         break;
       }
-  case "terrasse": {
+      case "terrasse": {
         // Excel-only base; apply specified extras:
         // - kvalitetsfaktor (lav/høj) is ignored here (no UI), so we use 'normal'
         // - hævet: multiplicative factor ×1.5
         // - værn: multiplicative factor ×1.2
         // - trappe: fixed (fra JSON)
         const areaM2 = Math.max(0, it.area);
-        let base = baseTotal(pricing?.base?.["terrasse"], areaM2, "normal", "terrasse");
+        let base = baseTotal(
+          pricing?.base?.["terrasse"],
+          areaM2,
+          "normal",
+          "terrasse"
+        );
         // Apply multiplicative factors for hævet/værn
         let mult = 1;
         if (it.extra?.hævet) mult *= 1.5;
@@ -496,16 +546,21 @@ export default function RenovationWithList() {
         // Add additive extras (e.g., trappe) from JSON if present
         const picks: string[] = [];
         if (it.extra?.trappe) picks.push("trappe");
-        const add = extrasTotal(pricing?.extras?.["terrasse"], areaM2, picks, "terrasse:extras");
+        const add = extrasTotal(
+          pricing?.extras?.["terrasse"],
+          areaM2,
+          picks,
+          "terrasse:extras"
+        );
         price += sumTotal(base, add);
         break;
       }
       case "roof": {
-  // Roof pricing using five-step interpoleret faktor (lav..høj) and JSON extras
-  const qIdx = ((it as any).roofQuality ?? 2) as number;
+        // Roof pricing using five-step interpoleret faktor (lav..høj) and JSON extras
+        const qIdx = ((it as any).roofQuality ?? 2) as number;
         const toggles = (it as any).extras || {};
-  const tagRow = pricing?.base?.["tag"];
-  let base = baseWith(tagRow, AREA, interpFaktor(qIdx, tagRow));
+        const tagRow = pricing?.base?.["tag"];
+        let base = baseWith(tagRow, AREA, interpFaktor(qIdx, tagRow));
         // Additive extras (fixed/per m²)
         const addPicks = [
           toggles.efterisolering ? "efterisolering" : "",
@@ -531,20 +586,23 @@ export default function RenovationWithList() {
           const list = pricing?.extras?.["tag"] || [];
           for (const e of list) {
             const name = String(e.name).toLowerCase();
-            if ((name.includes("kvist") || name.includes("kviste")) && e.kind === "fixed") {
+            if (
+              (name.includes("kvist") || name.includes("kviste")) &&
+              e.kind === "fixed"
+            ) {
               base += Math.round(e.amount * dormers);
             }
           }
         }
-  // Multiplicative factors for tagtype (saddeltag/valm) if selected
+        // Multiplicative factors for tagtype (saddeltag/valm) if selected
         let mult = 1;
         if (toggles.saddeltag) mult *= 1.2;
         if (toggles.valm) mult *= 1.2;
         base = Math.round(base * mult);
-          // Pitch factor: 0° -> 1.0, 45° -> 2.0 (linear)
-          const pitch = Math.max(0, Math.min(45, (it as any).roofPitch || 0));
-          const pitchFactor = 1 + (pitch / 45) * (2 - 1);
-          price += Math.round(base * pitchFactor);
+        // Pitch factor: 0° -> 1.0, 45° -> 2.0 (linear)
+        const pitch = Math.max(0, Math.min(45, (it as any).roofPitch || 0));
+        const pitchFactor = 1 + (pitch / 45) * (2 - 1);
+        price += Math.round(base * pitchFactor);
         break;
       }
       case "Facade": {
@@ -598,15 +656,20 @@ export default function RenovationWithList() {
         break;
       }
       case "køkken": {
-  // Kitchen pricing: (startpris × faktor) + (m2pris × AREA)
-  const qIdx = ((it as any).quality ?? 2) as number;
-  const row = pricing?.base?.["køkken"];
-  const faktor = interpFaktor(qIdx, row);
-  const start = (row?.startpris ?? 0) * (faktor || 1);
-  const areaPart = (row?.m2pris ?? 0) * AREA;
-  let base = Math.max(0, Math.round(start + areaPart));
+        // Kitchen pricing: (startpris × faktor) + (m2pris × AREA)
+        const qIdx = ((it as any).quality ?? 2) as number;
+        const row = pricing?.base?.["køkken"];
+        const faktor = interpFaktor(qIdx, row);
+        const start = (row?.startpris ?? 0) * (faktor || 1);
+        const areaPart = (row?.m2pris ?? 0) * AREA;
+        let base = Math.max(0, Math.round(start + areaPart));
         if (it.placement === "new") {
-          base += extrasTotal(pricing?.extras?.["køkken"], 1, ["placering"], "køkken:ny placering");
+          base += extrasTotal(
+            pricing?.extras?.["køkken"],
+            1,
+            ["placering"],
+            "køkken:ny placering"
+          );
         }
         price += base;
         break;
@@ -662,15 +725,40 @@ export default function RenovationWithList() {
     return () => clearTimeout(t);
   }, [lastAddedId]);
 
+  // Measure sticky bar height to set bottom padding dynamically (mobile only)
+  useEffect(() => {
+    const applyPadding = () => {
+      if (!mainRef.current) return;
+      const isDesktop = window.matchMedia("(min-width: 768px)").matches;
+      if (isDesktop) {
+        mainRef.current.style.removeProperty("--bottom-bar-h");
+        return;
+      }
+      const h = barRef.current?.offsetHeight || 0;
+      // Add safe area inset for iOS
+      const safe = parseInt(
+        getComputedStyle(document.documentElement).getPropertyValue(
+          "env(safe-area-inset-bottom)"
+        ) || "0"
+      );
+      const total = Math.max(64, h) + (isNaN(safe) ? 0 : safe);
+      mainRef.current.style.setProperty("--bottom-bar-h", `${total}px`);
+    };
+    applyPadding();
+    window.addEventListener("resize", applyPadding);
+    return () => window.removeEventListener("resize", applyPadding);
+  }, [items.length]);
+
   return (
     <div
       className={`min-h-screen flex flex-col bg-gray-50 transition-all duration-[400ms] ease-out ${
-        entered ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3"
+        entered ? "opacity-100" : "opacity-0 translate-y-3"
       }`}
     >
       <main
-  className={`flex-1 container mx-auto px-3 sm:px-4 py-6 sm:py-8 pb-24 md:pb-8 space-y-6 ${
-          items.length > 0 ? "pb-24 sm:pb-8" : "pb-8"
+        ref={mainRef}
+        className={`flex-1 container mx-auto px-3 sm:px-4 py-6 sm:py-8 space-y-6 ${
+          items.length > 0 ? "pb-dynamic md:pb-0" : "pb-8"
         }`}
       >
         {/* Grunddata */}
@@ -1056,7 +1144,9 @@ export default function RenovationWithList() {
                 <div className="md:hidden -mx-3 -mt-2 px-3 pt-2 pb-2 bg-white/95 backdrop-blur border-b border-gray-200 flex items-center justify-between">
                   <span className="text-[10px] uppercase tracking-wide text-gray-500">
                     Samlet
-                    <span className="ml-1 normal-case text-[10px] text-gray-500">(inkl. moms)</span>
+                    <span className="ml-1 normal-case text-[10px] text-gray-500">
+                      (inkl. moms)
+                    </span>
                   </span>
                   <span className="text-sm font-semibold text-blue-700">
                     {formatKr(smartRound(sumAdjusted))}
@@ -1225,11 +1315,14 @@ export default function RenovationWithList() {
       {/* Sticky mobil bund-bar (fast nederst) */}
       {items.length > 0 && (
         <div
+          ref={barRef}
           className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur border-t border-gray-200 px-4 pt-2 pb-2 pb-safe-bottom flex items-center justify-between shadow-lg"
           aria-label="Samlet pris sticky bar"
         >
           <div className="flex flex-col leading-tight">
-            <span className="text-[10px] uppercase tracking-wide text-gray-500">Samlet</span>
+            <span className="text-[10px] uppercase tracking-wide text-gray-500">
+              Samlet
+            </span>
             <span className="text-[10px] text-gray-500">(inkl. moms)</span>
             <span className="text-base font-semibold text-blue-700">
               {formatKr(smartRound(sumAdjusted))}
@@ -1237,24 +1330,28 @@ export default function RenovationWithList() {
           </div>
           <button
             onClick={() => {
-              // Try scrolling the project list first (if it can scroll)
-              const listEl = (document.querySelector('[aria-label="Projekt liste elementer (scroll)"]') as HTMLDivElement) || null;
-              if (listEl && listEl.scrollHeight > listEl.clientHeight) {
-                listEl.scrollTo({ top: listEl.scrollHeight, behavior: "smooth" });
+              // 1) Prefer scrolling to the footer to ensure disclaimer is visible
+              const footer = document.getElementById("footer-disclaimer");
+              if (footer) {
+                footer.scrollIntoView({ behavior: "smooth", block: "end" });
                 return;
               }
-              // Fallback: scroll the page to the bottom
-              const body = document.body;
-              const html = document.documentElement;
-              const height = Math.max(
-                body.scrollHeight,
-                html.scrollHeight,
-                body.offsetHeight,
-                html.offsetHeight,
-                body.clientHeight,
-                html.clientHeight
-              );
-              window.scrollTo({ top: height, behavior: "smooth" });
+              // 2) Otherwise, try to scroll the project list to its last card
+              const listEl = document.querySelector(
+                '[aria-label="Projekt liste elementer (scroll)"]'
+              ) as HTMLDivElement | null;
+              if (listEl) {
+                const last = listEl.lastElementChild as HTMLElement | null;
+                if (last) {
+                  last.scrollIntoView({ behavior: "smooth", block: "end" });
+                  return;
+                }
+              }
+              // 3) Fallback: scroll the window to the bottom
+              window.scrollTo({
+                top: document.documentElement.scrollHeight,
+                behavior: "smooth",
+              });
             }}
             className="text-xs font-medium px-3 py-1.5 rounded-full bg-blue-600 text-white shadow hover:bg-blue-700 active:scale-[.97] transition"
           >
@@ -1262,10 +1359,12 @@ export default function RenovationWithList() {
           </button>
         </div>
       )}
-      {/* Spacer to prevent overlap with fixed bottom bar on mobile */}
-      {items.length > 0 && <div className="md:hidden h-16" aria-hidden />}
-      {/* Disclaimer */}
-  <div className="mt-6 px-4 pb-8 text-[11px] sm:text-xs text-gray-600 max-w-3xl mx-auto">
+      {/* Footer disclaimer inside main to keep spacing tight */}
+      <footer
+        id="footer-disclaimer"
+        role="contentinfo"
+        className="mt-6 px-4 pb-24 md:pb-8 text-[11px] sm:text-xs text-gray-600 max-w-3xl mx-auto border-t border-gray-200 pt-4"
+      >
         <p className="flex items-start gap-1.5">
           <AiOutlineInfoCircle className="mt-[2px] text-blue-600" />
           <span>
@@ -1279,7 +1378,7 @@ export default function RenovationWithList() {
             og den endelige projektøkonomi.
           </span>
         </p>
-      </div>
+      </footer>
     </div>
   );
 }

@@ -18,7 +18,9 @@ export const TerraceEditor: React.FC<Props> = ({ item, update }) => (
         max={200}
         step={1}
         value={item.area}
-        onChange={(e) => update("area", Math.max(0, parseInt(e.target.value, 10)))}
+        onChange={(e) =>
+          update("area", Math.max(0, parseInt(e.target.value, 10)))
+        }
         className="w-full accent-blue-500 h-2 rounded-lg appearance-none cursor-pointer mt-1"
         title="Vælg terrasse størrelse i m²"
       />
