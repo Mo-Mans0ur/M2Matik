@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FaPaintRoller, FaBath, FaDoorOpen } from "react-icons/fa";
 import { GiBrickWall } from "react-icons/gi";
 import {
@@ -7,8 +7,10 @@ import {
   MdHouseSiding,
   MdKitchen,
   MdOutlineElectricalServices,
+  MdHome,
 } from "react-icons/md";
 import { RiLayoutGridLine } from "react-icons/ri";
+import { AiOutlineInfoCircle } from "react-icons/ai";
 import { FaHouseFire } from "react-icons/fa6";
 import PaintingEditor from "../components/editors/PaintingEditor";
 import FloorEditor from "../components/editors/FloorEditor";
@@ -18,6 +20,7 @@ import TerraceEditor from "../components/editors/TerraceEditor";
 import RoofEditor from "../components/editors/RoofEditor";
 import FacadeEditor from "../components/editors/FacadeEditor";
 import WallsEditor from "../components/editors/WallsEditor";
+import DemolitionEditor from "../components/editors/DemolitionEditor";
 import HeatingEditor from "../components/editors/HeatingEditor";
 import ElectricityEditor from "../components/editors/ElectricityEditor";
 import KitchenEditor from "../components/editors/KitchenEditor";
@@ -33,14 +36,7 @@ import {
   formatKr,
   smartRound,
 } from "./renovationTypes";
-import {
-  loadPricingFromExcel,
-  qualityToLabel,
-  calcBaseTotal,
-  calcExtrasTotal,
-  UI_TO_EXCEL_KEY,
-} from "../pricing/excel";
-import type { BaseMap, ExtrasMap } from "../pricing/excel";
+import { loadPricesJson, type JsonData, type JsonPrice, baseTotal, extrasTotal, total as sumTotal } from "../pricing/json";
 
 // ---------- Komponent ----------
 export default function RenovationWithList() {
@@ -57,25 +53,24 @@ export default function RenovationWithList() {
   // Projekt liste med individuelle poster
   const [items, setItems] = useState<AnyItem[]>([]);
 
-  // Excel pricing
-  const [excelBase, setExcelBase] = useState<BaseMap | null>(null);
-  const [excelExtras, setExcelExtras] = useState<ExtrasMap | null>(null);
+  // JSON pricing
+  const [pricing, setPricing] = useState<JsonData | null>(null);
   // no explicit ready flag; we treat null base/extras as not-yet-loaded
+
+  // Track last added item to scroll into view in the project list
+  const [lastAddedId, setLastAddedId] = useState<string | null>(null);
+  const listRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const { base, extras } = await loadPricingFromExcel();
+        const data = await loadPricesJson();
         if (!mounted) return;
-        setExcelBase(base);
-        setExcelExtras(extras);
+        setPricing(data);
       } catch (e) {
-        console.warn("Failed to load Excel pricing:", e);
-        setExcelBase({});
-        setExcelExtras({});
-      } finally {
-        // noop
+        console.warn("Failed to load priser.json:", e);
+        setPricing({ base: {}, extras: {} });
       }
     })();
     return () => {
@@ -101,25 +96,27 @@ export default function RenovationWithList() {
 
   const AREA = meta ? Math.max(60, Math.min(300, meta.sizeM2 || 0)) : 0;
 
+  // Map 5-stop quality (0..4) to 3-stop (lav/normal/høj)
+
   // Kort / muligheder (bruges til UI og "Fra"-pris på kortene)
   const options = [
     {
       id: "maling",
-      label: "Maling",
+      label: "Indvendigt malerarbejde",
       icon: <FaPaintRoller />,
       info: "Maling: Overfladebehandling af vægge/lofter inkl. evt. ekstra detaljer.",
     },
     {
       id: "gulv",
-      label: "Gulv",
+      label: "Gulve",
       icon: <RiLayoutGridLine size={22} />,
       info: "Gulv: Udskiftning / renovering af gulv – kvalitet og gulvvarme.",
     },
     {
       id: "bad",
-      label: "Bad",
+      label: "Bad/Toilet",
       icon: <FaBath />,
-      info: "Bad: Renovering eller flytning af badeværelse.",
+      info: "Bad/Toilet: Renovering eller flytning af bad/toilet.",
     },
     {
       id: "døreOgVinduer",
@@ -141,7 +138,7 @@ export default function RenovationWithList() {
     },
     {
       id: "Facade",
-      label: "Facade",
+      label: "Facader",
       icon: <MdHouseSiding size={22} />,
       info: "Facade: Overfladebehandling eller ny beklædning + efterisolering.",
     },
@@ -149,7 +146,13 @@ export default function RenovationWithList() {
       id: "walls",
       label: "Vægge",
       icon: <GiBrickWall />,
-      info: "Vægge: Nedrivning af vægge og opbygning af nye.",
+      info: "Vægge: Opbygning af nye vægge (nedrivning er separat).",
+    },
+    {
+      id: "demolition",
+      label: "Nedrivning",
+      icon: <GiBrickWall />,
+      info: "Nedrivning for sig – let, bærende og indvendige vægge.",
     },
     {
       id: "heating",
@@ -189,7 +192,7 @@ export default function RenovationWithList() {
           uid: newUID(),
           typeId,
           label,
-          paintQuality: 1,
+          paintQuality: 2,
           extras: {},
           coveragePercent: 100,
         };
@@ -199,7 +202,7 @@ export default function RenovationWithList() {
           uid: newUID(),
           typeId,
           label,
-          floorQuality: 1,
+          floorQuality: 2,
           hasFloorHeating: false,
         };
         break;
@@ -210,7 +213,10 @@ export default function RenovationWithList() {
           label,
           bathPlacement: "same",
           count: 1,
-          bathQuality: 1,
+          bathQuality: 2,
+          roomKind: "bad",
+          sizeM2: 6,
+          addons: { bruseniche: false, badekar: false },
         };
         break;
       case "døreOgVinduer":
@@ -222,7 +228,7 @@ export default function RenovationWithList() {
           operation: "replacement",
           newInstall: "door",
           count: 1,
-          quality: 1,
+          quality: 2,
           sizeScale: 50,
         } as any;
         break;
@@ -241,7 +247,7 @@ export default function RenovationWithList() {
           typeId,
           label,
           roofPitch: 0,
-          roofQuality: 0,
+          roofQuality: 2,
           extras: {
             saddeltag: false,
             valm: false,
@@ -272,6 +278,16 @@ export default function RenovationWithList() {
           nyBærende: false,
         } as any;
         break;
+      case "demolition":
+        item = {
+          uid: newUID(),
+          typeId,
+          label,
+          demoLet: false,
+          demoBærende: false,
+          demoIndvendig: false,
+        } as any;
+        break;
       case "heating":
         item = {
           uid: newUID(),
@@ -298,7 +314,7 @@ export default function RenovationWithList() {
           typeId,
           label,
           placement: "same",
-          quality: 1,
+          quality: 2,
         } as any;
         break;
       default:
@@ -306,6 +322,7 @@ export default function RenovationWithList() {
     }
 
     setItems((prev) => [...prev, item]);
+    setLastAddedId(item.uid);
   };
 
   // Fjern en enkelt post
@@ -326,75 +343,111 @@ export default function RenovationWithList() {
 
     let price = 0;
 
+    // 5-step quality factor helper: index 0..4 → [lav..1..høj]
+    const fiveStepFactor = (idx: number, lav: number, høj: number) => {
+      const i = Math.max(0, Math.min(4, Math.round(idx)));
+      if (i <= 2) {
+        // interpolate from lav at 0 to 1.0 at 2
+        const t = i / 2;
+        return lav + (1 - lav) * t;
+      } else {
+        // interpolate from 1.0 at 2 to høj at 4
+        const t = (i - 2) / 2;
+        return 1 + (høj - 1) * t;
+      }
+    };
+
+    // Interpolate faktor directly from a JsonPrice row using the 5-step index
+    const interpFaktor = (idx: number, row?: JsonPrice) =>
+      fiveStepFactor(idx, row?.faktorLav ?? 1, row?.faktorHøj ?? 1);
+
+    // Compute base price with explicit faktor value (keeps startpris outside the faktor)
+    const baseWith = (row: JsonPrice | undefined, area: number, faktor: number) => {
+      const r = row || { startpris: 0, m2pris: 0, faktorLav: 1, faktorNormal: 1, faktorHøj: 1 } as JsonPrice;
+      const total = (r.startpris || 0) + Math.max(0, area) * (r.m2pris || 0) * (faktor || 1);
+      return Math.max(0, Math.round(total));
+    };
+
     switch (it.typeId) {
       case "maling": {
-        // Excel-driven painting: base scaled by coverage and quality
+        // Base scaled by coverage and quality (from priser.json)
         const coverage =
           Math.max(0, Math.min(100, (it as any).coveragePercent ?? 100)) / 100;
         const areaCovered = AREA * coverage;
-        const row = excelBase?.[UI_TO_EXCEL_KEY.maling || "maling"];
-        if (!row)
-          console.warn("No Excel row for painting", {
-            key: UI_TO_EXCEL_KEY.maling,
-          });
-        const qLbl = qualityToLabel((it.paintQuality ?? 1) as 0 | 1 | 2);
-        price += calcBaseTotal(row, areaCovered, qLbl);
+        const qIdx = (it.paintQuality ?? 2) as number;
+  const malRow = pricing?.base?.["maling"];
+  price += baseWith(malRow, areaCovered, interpFaktor(qIdx, malRow));
 
-        // Independent tasks: Høje paneler and Stuk use their own area & quality
-        const baseMap = excelBase || {};
-        const getRow = (name: string) => {
-          const normLocal = (s: string) =>
-            String(s || "")
-              .toLowerCase()
-              .normalize("NFD")
-              .replace(/\p{Diacritic}/gu, "")
-              .replace(/\s+/g, "")
-              .replace(/[^a-z0-9_.-]/g, "");
-          return baseMap[normLocal(name)];
-        };
+        // Independent lines: Høje paneler and Stuk with their own area/quality
+        // Treat as separate base entries if present in JSON base, otherwise as painting extras
+  const qFactorFrom = (idx: number, row?: JsonPrice) => interpFaktor(idx, row);
 
-        // Træværk as a simple extra proportional to painted area (kept as before)
-        if (it.extras?.træværk) {
-          const rowTv = getRow("Træværk");
-          if (rowTv) price += calcBaseTotal(rowTv, areaCovered, qLbl);
+        // Træværk: add as additive extra if selected (fixed and/or per m² lines in JSON)
+        if ((it as any).extras?.["træværk"]) {
+          const addTv = extrasTotal(
+            pricing?.extras?.["maling"],
+            areaCovered,
+            ["træværk"],
+            "maling:træværk"
+          );
+          price += addTv;
         }
 
-        // Høje paneler: pris beregnes uafhængigt af coverage, med fuldt areal og samme kvalitet som maling
         if (it.extras?.paneler) {
-          const rowP = getRow("Høje paneler") || getRow("Paneler");
-          if (rowP) price += calcBaseTotal(rowP, AREA, qLbl);
+          const row = pricing?.base?.["højePaneler"];
+          if (row) {
+            price += baseWith(row, AREA, qFactorFrom(qIdx, row));
+          } else {
+            // fallback to extras list under maling
+            const add = extrasTotal(pricing?.extras?.["maling"], AREA, ["høje", "paneler"], "maling:høje paneler");
+            price += add;
+          }
         }
-
-        // Stuk
         if (it.extras?.stuk) {
-          const rowS = getRow("Stuk");
-          // Stuk often priced per m2 of ceiling/walls; default to full AREA
-          if (rowS) price += calcBaseTotal(rowS, AREA, qLbl);
+          const row = pricing?.base?.["stuk"];
+          if (row) {
+            price += baseWith(row, AREA, qFactorFrom(qIdx, row));
+          } else {
+            const add = extrasTotal(pricing?.extras?.["maling"], AREA, ["stuk"], "maling:stuk");
+            price += add;
+          }
         }
         break;
       }
       case "gulv": {
-        const floorFactor =
-          it.floorQuality === 0 ? 1 : it.floorQuality === 1 ? 1.2 : 1.5;
-        price += Math.round(AREA * perM2.gulv * floorFactor);
-        if (it.hasFloorHeating) price += 5000;
-        break;
-      }
-      case "bad": {
-        // Bathroom pricing: start 250,000, quality factors (0.8/1.0/1.2); no m² component
-        const n = Math.max(0, Math.min(5, (it as any).count ?? 1));
-        const q = (it as any).bathQuality ?? 1; // 0|1|2
-        const factor = q === 0 ? 0.8 : q === 2 ? 1.2 : 1.0;
-        const baseOne = Math.max(0, Math.round(250000 * factor));
-        price += baseOne * n;
-        if (it.bathPlacement === "new") {
-          // Fixed extra 25,000 per bathroom for new placement
-          price += 25000 * n;
+        const qIdx = Math.max(0, Math.min(4, (it.floorQuality ?? 2) as number));
+        const row = pricing?.base?.["gulv"];
+        price += baseWith(row, AREA, interpFaktor(qIdx, row));
+        if (it.hasFloorHeating) {
+          const addVarme = extrasTotal(
+            pricing?.extras?.["gulv"],
+            AREA,
+            ["gulvvarme"],
+            "gulv:varme"
+          );
+          price += addVarme > 0 ? addVarme : Math.round(500 * AREA);
         }
         break;
       }
-      case "døreOgVinduer": {
-        // Per unit: 20.000 kr. pr. stk med kvalitetsfaktor (lav 0,8 | mid 1,0 | høj 2,0) + evt. 'nyt hul' ekstra
+      case "bad": {
+        // Base from priser.json using exact formula
+        const qIdx = (it as any).bathQuality ?? 2;
+        const row = pricing?.base?.["badeværelse"];
+        const sz = Math.max(2, Math.min(12, (it as any).sizeM2 ?? 6));
+        const n = Math.max(1, Math.min(5, (it as any).count ?? 1));
+  // Apply faktor to the whole base (startpris + m²-delen)
+  const faktor = interpFaktor(qIdx, row);
+  const baseUnfactored = baseWith(row, sz, 1);
+  let base = Math.round(baseUnfactored * faktor) * n;
+        if (it.bathPlacement === "new") {
+          // Ny placering tillæg per rum
+          base += extrasTotal(pricing?.extras?.["badeværelse"], 1, ["placering"], "bad:ny placering") * n;
+        }
+        price += base;
+        break;
+      }
+  case "døreOgVinduer": {
+        // Per unit base × 5-trins interpoleret faktor (lav..høj) + evt. 'nyt hul' ekstra
         const doorWin = it as unknown as Partial<ItemDøreVinduer> & {
           count: number;
           choice: "door" | "window";
@@ -417,55 +470,81 @@ export default function RenovationWithList() {
           if (legacyVariant === "newDoor") newInstall = "door";
           if (legacyVariant === "newWindow") newInstall = "window";
         }
-        // installType no longer needed since 'nyt hul' is a fixed amount
-        const q = ((it as any).quality ?? 1) as 0 | 1 | 2;
-        const factor = q === 0 ? 0.8 : q === 2 ? 2.0 : 1.0;
-        let unit = Math.round(20000 * factor);
+  const qIdx = ((it as any).quality ?? 2) as number;
+        const cnt = Math.max(0, doorWin.count || 0);
+  const row = pricing?.base?.["døreOgVinduer"];
+  let unit = baseWith(row, 1, interpFaktor(qIdx, row));
         if (operation === "newHole") {
-          // Fast tillæg ved nyt hul: 40.000 kr pr. enhed
-          unit += 40000;
+          unit += extrasTotal(pricing?.extras?.["døre og vinduer"], 1, ["nyt", "hul"], "døre/vinduer:nyt hul");
         }
-        // Pris pr. stk: 20.000 × kvalitetsfaktor × antal (uden størrelsesfaktor)
-        price += Math.round(unit) * Math.max(0, doorWin.count || 0);
+        price += Math.round(unit) * cnt;
         break;
       }
-      case "terrasse": {
-        const base = 12000;
-        const area = Math.max(0, it.area) * 500; // areaPrice
-        const extras =
-          (it.extra.hævet ? 3000 : 0) +
-          (it.extra.trappe ? 2500 : 0) +
-          (it.extra.værn ? 2000 : 0);
-        price += base + area + extras;
+  case "terrasse": {
+        // Excel-only base; apply specified extras:
+        // - kvalitetsfaktor (lav/høj) is ignored here (no UI), so we use 'normal'
+        // - hævet: multiplicative factor ×1.5
+        // - værn: multiplicative factor ×1.2
+        // - trappe: fixed (fra JSON)
+        const areaM2 = Math.max(0, it.area);
+        let base = baseTotal(pricing?.base?.["terrasse"], areaM2, "normal", "terrasse");
+        // Apply multiplicative factors for hævet/værn
+        let mult = 1;
+        if (it.extra?.hævet) mult *= 1.5;
+        if (it.extra?.værn) mult *= 1.2;
+        base = Math.round(base * mult);
+        // Add additive extras (e.g., trappe) from JSON if present
+        const picks: string[] = [];
+        if (it.extra?.trappe) picks.push("trappe");
+        const add = extrasTotal(pricing?.extras?.["terrasse"], areaM2, picks, "terrasse:extras");
+        price += sumTotal(base, add);
         break;
       }
       case "roof": {
-        // Roof pricing: base (fladt) start 30.000 + 2.500 kr/m² with quality factors (lav 0,7 | mid 1,0 | høj 2,0)
-        // Extras explicitly per spec: saddeltag ×1.2, valmtag ×1.2, efterisolering +2000/m², kviste +80.000/stk.
-        const q: 0 | 1 | 2 = ((it as any).roofQuality ?? 0) as 0 | 1 | 2;
-        const ex = (it as any).extras || {};
-        const baseRow = {
-          key: "tag",
-          startpris: 30000,
-          m2pris: 2500,
-          faktorLav: 0.7,
-          faktorHøj: 2.0,
-        } as const;
-        let subtotal = calcBaseTotal(baseRow as any, AREA, qualityToLabel(q));
-        // multiplicative extras
+  // Roof pricing using five-step interpoleret faktor (lav..høj) and JSON extras
+  const qIdx = ((it as any).roofQuality ?? 2) as number;
+        const toggles = (it as any).extras || {};
+  const tagRow = pricing?.base?.["tag"];
+  let base = baseWith(tagRow, AREA, interpFaktor(qIdx, tagRow));
+        // Additive extras (fixed/per m²)
+        const addPicks = [
+          toggles.efterisolering ? "efterisolering" : "",
+          toggles.undertag ? "undertag" : "",
+        ].filter(Boolean) as string[];
+        if (addPicks.length) {
+          const addFromJson = extrasTotal(
+            pricing?.extras?.["tag"],
+            AREA,
+            addPicks,
+            "tag:additives"
+          );
+          let add = addFromJson;
+          // Fallback: Efterisolering = 2.000 kr pr. m² if not provided in JSON
+          if (toggles.efterisolering && addFromJson === 0) {
+            add += Math.round(2000 * AREA);
+          }
+          base += add;
+        }
+        // Kviste per piece
+        const dormers = Number(toggles.kviste || 0);
+        if (dormers > 0) {
+          const list = pricing?.extras?.["tag"] || [];
+          for (const e of list) {
+            const name = String(e.name).toLowerCase();
+            if ((name.includes("kvist") || name.includes("kviste")) && e.kind === "fixed") {
+              base += Math.round(e.amount * dormers);
+            }
+          }
+        }
+  // Multiplicative factors for tagtype (saddeltag/valm) if selected
         let mult = 1;
-        if (ex.saddeltag) mult *= 1.2;
-        if (ex.valm) mult *= 1.2;
-        subtotal *= mult;
-        // additive extras
-        let add = 0;
-        if (ex.efterisolering) add += 2000 * AREA;
-        const dormers = Number(ex.kviste || 0);
-        if (dormers > 0) add += 80000 * dormers;
-        // Pitch factor: 0° -> 1.0, 45° -> 2.0 (linear)
-        const pitch = Math.max(0, Math.min(45, (it as any).roofPitch || 0));
-        const pitchFactor = 1 + (pitch / 45) * (2 - 1);
-        price += Math.round((subtotal + add) * pitchFactor);
+        if (toggles.saddeltag) mult *= 1.2;
+        if (toggles.valm) mult *= 1.2;
+        base = Math.round(base * mult);
+          // Pitch factor: 0° -> 1.0, 45° -> 2.0 (linear)
+          const pitch = Math.max(0, Math.min(45, (it as any).roofPitch || 0));
+          const pitchFactor = 1 + (pitch / 45) * (2 - 1);
+          price += Math.round(base * pitchFactor);
         break;
       }
       case "Facade": {
@@ -477,14 +556,17 @@ export default function RenovationWithList() {
         break;
       }
       case "walls": {
-        // Nedrivning
-        if ((it as any).demoLet) price += 7000;
-        if ((it as any).demoBærende) price += 15000;
-        if ((it as any).demoIndvendig) price += 6000;
         // Nye vægge
         if ((it as any).nyLet) price += 9000;
         if ((it as any).nyBærende) price += 18000;
         if (price === 0) price += perM2.walls; // baseline badge/fallback
+        break;
+      }
+      case "demolition": {
+        if ((it as any).demoLet) price += 7000;
+        if ((it as any).demoBærende) price += 15000;
+        if ((it as any).demoIndvendig) price += 6000;
+        if (price === 0) price += 0; // no baseline
         break;
       }
       case "heating": {
@@ -492,26 +574,41 @@ export default function RenovationWithList() {
         break;
       }
       case "el": {
-        // Electrician: fixed base 20,000; 'Ny tavle' fixed 30,000; keep other extras from Excel if present
+        // Electrician pricing:
+        // - Startpris: 20.000 kr
+        // - Stik: 1.000 kr pr. stk ("stikCount")
+        // - Ny tavle: 30.000 kr (fast)
+        // - Øvrige tilvalg (fx bil lader, skjulte føringer) via JSON extras
         price += 20000;
+        const sticks = Math.max(0, Number((it as any).stikCount ?? 0));
+        price += 1000 * sticks;
         if (it.newPanel) price += 30000;
-        const elExtras = excelExtras?.[UI_TO_EXCEL_KEY.el || "elektriker"]; // try category
-        const picked: string[] = [];
-        // Exclude 'Ny tavle' here to avoid double counting as we add it fixed above
-        if ((it as any).evCharger) picked.push("Bil lader");
-        if (it.hiddenRuns) picked.push("Skjulte føringer");
-        if (elExtras && picked.length)
-          price += calcExtrasTotal(elExtras, AREA, picked);
+        // Keep other extras from JSON (exclude tavle to avoid double counting)
+        const picks: string[] = [];
+        if ((it as any).evCharger) picks.push("bil", "lader");
+        if (it.hiddenRuns) picks.push("skjulte", "føringer");
+        if (picks.length) {
+          price += extrasTotal(
+            pricing?.extras?.["elektriker"],
+            AREA,
+            picks,
+            "elektriker:extras"
+          );
+        }
         break;
       }
       case "køkken": {
-        const q: 0 | 1 | 2 = ((it as any).quality ?? 1) as 0 | 1 | 2;
-        const factor = q === 0 ? 0.3 : q === 2 ? 2.0 : 1.0;
-        price += Math.round(300000 * factor);
+  // Kitchen pricing: (startpris × faktor) + (m2pris × AREA)
+  const qIdx = ((it as any).quality ?? 2) as number;
+  const row = pricing?.base?.["køkken"];
+  const faktor = interpFaktor(qIdx, row);
+  const start = (row?.startpris ?? 0) * (faktor || 1);
+  const areaPart = (row?.m2pris ?? 0) * AREA;
+  let base = Math.max(0, Math.round(start + areaPart));
         if (it.placement === "new") {
-          // Fixed extra 25,000 for new placement (same rule as bathroom)
-          price += 25000;
+          base += extrasTotal(pricing?.extras?.["køkken"], 1, ["placering"], "køkken:ny placering");
         }
+        price += base;
         break;
       }
     }
@@ -527,46 +624,12 @@ export default function RenovationWithList() {
     return map;
   }, [items]);
 
-  // Badge "Fra"-pris til kort (grove defaults)
-  const getCardFromPrice = (typeId: AnyItem["typeId"]): number => {
-    switch (typeId) {
-      case "maling":
-        // fixed "Fra" price for painting
-        return 5000;
-      case "gulv":
-        // not finalized yet
-        return 0;
-      case "bad":
-        // new model: base per bathroom
-        return 250000;
-      case "døreOgVinduer":
-        // new model: per unit baseline (mid quality)
-        return 20000;
-      case "terrasse":
-        // not finalized yet
-        return 0;
-      case "roof":
-        // new model baseline (mid quality, pitch 0)
-        return Math.max(0, 30000 + 2500 * AREA);
-      case "Facade":
-        // not finalized yet
-        return 0;
-      case "walls":
-        // not finalized yet
-        return 0;
-      case "heating":
-        // not finalized yet
-        return 0;
-      case "el":
-        // new model base
-        return 20000;
-      case "køkken":
-        // new model base
-        return 300000;
-      default:
-        return 0;
-    }
-  };
+  const hasSelected = useMemo(
+    () => Object.values(typeCounts).some((n) => n > 0),
+    [typeCounts]
+  );
+
+  // No more "Fra" prices on cards
 
   const calcItemAdjusted = (base: number) =>
     Math.max(0, Math.round(base * autoFactor * manualFactor));
@@ -583,6 +646,22 @@ export default function RenovationWithList() {
 
   // smartRound & formatKr importeret
 
+  // After adding an item, scroll the project list to show the newest
+  useEffect(() => {
+    if (!lastAddedId) return;
+    const el = document.getElementById(`proj-${lastAddedId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    } else if (listRef.current) {
+      listRef.current.scrollTo({
+        top: listRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+    const t = setTimeout(() => setLastAddedId(null), 400);
+    return () => clearTimeout(t);
+  }, [lastAddedId]);
+
   return (
     <div
       className={`min-h-screen flex flex-col bg-gray-50 transition-all duration-[400ms] ease-out ${
@@ -590,30 +669,44 @@ export default function RenovationWithList() {
       }`}
     >
       <main
-        className={`flex-1 container mx-auto px-3 sm:px-4 py-6 sm:py-8 space-y-6 ${
+  className={`flex-1 container mx-auto px-3 sm:px-4 py-6 sm:py-8 pb-24 md:pb-8 space-y-6 ${
           items.length > 0 ? "pb-24 sm:pb-8" : "pb-8"
         }`}
       >
         {/* Grunddata */}
         {meta && (
-          <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-xl p-3 flex items-center justify-between">
-            <div className="text-sm">
-              <strong className="mr-2">Grunddata:</strong>
-              {meta.propertyType === "house"
-                ? "Hus"
-                : meta.propertyType === "apartment"
-                ? "Lejlighed"
-                : "Sommerhus"}{" "}
-              - {meta.sizeM2} m² - Postnr: {meta.postcode || "—"} - Kælder:{" "}
-              {meta.basement ? "Ja" : "Nej"} - 1. sal:{" "}
-              {meta.firstFloor ? "Ja" : "Nej"}
+          <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-xl p-2.5 sm:p-3 flex items-center justify-between">
+            <div className="text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 min-w-0">
+              <MdHome className="text-blue-700 text-lg sm:text-xl" />
+              <strong className="mr-1">Grunddata:</strong>
+              <div className="flex flex-wrap items-center gap-1 sm:gap-1.5">
+                <span className="px-1.5 py-0.5 rounded-full bg-blue-100 border border-blue-200 text-[11px] sm:text-xs">
+                  {meta.propertyType === "house"
+                    ? "Hus"
+                    : meta.propertyType === "apartment"
+                    ? "Lejlighed"
+                    : "Sommerhus"}
+                </span>
+                <span className="px-1.5 py-0.5 rounded-full bg-blue-100 border border-blue-200 text-[11px] sm:text-xs">
+                  {meta.sizeM2} m²
+                </span>
+                <span className="px-1.5 py-0.5 rounded-full bg-blue-100 border border-blue-200 text-[11px] sm:text-xs">
+                  Postnr: {meta.postcode || "—"}
+                </span>
+                <span className="px-1.5 py-0.5 rounded-full bg-blue-100 border border-blue-200 text-[11px] sm:text-xs">
+                  Kælder: {meta.basement ? "Ja" : "Nej"}
+                </span>
+                <span className="px-1.5 py-0.5 rounded-full bg-blue-100 border border-blue-200 text-[11px] sm:text-xs">
+                  1. sal: {meta.firstFloor ? "Ja" : "Nej"}
+                </span>
+              </div>
             </div>
             <button
               onClick={() => {
                 setDraftMeta(meta);
                 setShowMetaEditor(true);
               }}
-              className="text-xs bg-white border border-blue-300 rounded px-3 py-1 hover:bg-blue-100"
+              className="text-[11px] sm:text-xs bg-white border border-blue-300 rounded px-2.5 py-1 hover:bg-blue-100"
             >
               Rediger
             </button>
@@ -622,7 +715,7 @@ export default function RenovationWithList() {
 
         {/* Meta editor modal */}
         {showMetaEditor && draftMeta && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
             <div
               className="absolute inset-0 bg-black/40 backdrop-blur-sm"
               onClick={() => setShowMetaEditor(false)}
@@ -630,7 +723,7 @@ export default function RenovationWithList() {
             <div
               role="dialog"
               aria-modal="true"
-              className="relative z-10 w-full max-w-sm bg-white rounded-xl shadow-lg border border-gray-200 p-4 space-y-4"
+              className="relative z-10 w-full max-w-sm sm:max-w-md bg-white rounded-xl shadow-lg border border-gray-200 p-4 space-y-4"
             >
               <h2 className="text-lg font-semibold">Rediger grunddata</h2>
               <form
@@ -815,68 +908,126 @@ export default function RenovationWithList() {
         </p>
 
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_420px] gap-5 lg:gap-6 items-start">
-          {/* Venstre: KORT (klik = tilføj) */}
-          <section className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
-            {options.map((opt) => {
-              const fromPrice = getCardFromPrice(opt.id as AnyItem["typeId"]);
-              const count = typeCounts[opt.id] || 0;
-              return (
-                <div
-                  key={opt.id}
-                  className={`relative group bg-white rounded-xl border shadow-sm hover:shadow transition-all cursor-pointer active:bg-blue-50 active:ring-1 active:ring-blue-300/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 active:scale-[.985] overflow-hidden ${
-                    count ? "border-blue-400" : "border-gray-200"
-                  }`}
-                  onClick={() => addItem(opt.id as AnyItem["typeId"])}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      addItem(opt.id as AnyItem["typeId"]);
-                    }
-                  }}
-                  tabIndex={0}
-                  role="button"
-                  aria-label={`Tilføj ${opt.label}${
-                    count ? ` (valgt ${count})` : ""
-                  }`}
-                  title="Klik for at tilføje til projektlisten"
-                >
-                  {count > 0 && (
-                    <span className="pointer-events-none absolute inset-x-0 bottom-0 h-1.5 bg-blue-500" />
-                  )}
-                  <div className="p-2.5 sm:p-4 flex flex-col min-h-[100px] sm:min-h-[130px]">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2 text-sm sm:text-base font-medium leading-snug">
-                        {opt.icon}
-                        <span className="break-words" title={opt.label}>
-                          {opt.label}
-                        </span>
-                        <InfoTooltip text={opt.info} />
+          {/* Venstre: KORT opdelt i kolonner (ikke-valgte / valgte) */}
+          <section
+            className={`grid ${
+              hasSelected ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1"
+            } gap-3 items-start`}
+          >
+            {/* Ikke valgte */}
+            <div>
+              <div className="text-[11px] text-gray-500 mb-1.5">Øvrige</div>
+              <div className="grid gap-2 sm:gap-2.5 grid-cols-[repeat(auto-fill,minmax(220px,1fr))]">
+                {options
+                  .filter((o) => !(typeCounts[o.id] > 0))
+                  .map((opt) => {
+                    const count = typeCounts[opt.id] || 0;
+                    return (
+                      <div
+                        key={opt.id}
+                        className={`relative group bg-white rounded-lg border shadow-sm hover:shadow transition-all cursor-pointer active:bg-blue-50 active:ring-1 active:ring-blue-300/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 active:scale-[.985] overflow-hidden ${
+                          count ? "border-blue-400" : "border-gray-200"
+                        }`}
+                        onClick={() => addItem(opt.id as AnyItem["typeId"])}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            addItem(opt.id as AnyItem["typeId"]);
+                          }
+                        }}
+                        tabIndex={0}
+                        role="button"
+                        aria-label={`Tilføj ${opt.label}${
+                          count ? ` (valgt ${count})` : ""
+                        }`}
+                        title="Klik for at tilføje til projektlisten"
+                      >
+                        <div className="p-1.5 sm:p-2 flex flex-col min-h-[68px] sm:min-h-[84px]">
+                          <div>
+                            <div className="flex items-center gap-1 text-[12px] sm:text-[13px] font-medium leading-snug">
+                              {opt.icon}
+                              <span
+                                className="flex items-center gap-1 whitespace-nowrap"
+                                title={opt.label}
+                              >
+                                <span>{opt.label}</span>
+                                <InfoTooltip text={opt.info} />
+                              </span>
+                            </div>
+                          </div>
+                          <div className="mt-auto pt-1 flex items-center justify-between gap-2">
+                            <span className="text-[10px] sm:text-[10px] text-gray-500 group-active:text-blue-600 transition-colors">
+                              Klik for at tilføje
+                            </span>
+                            <span />
+                          </div>
+                        </div>
                       </div>
-                      <div className="mt-1">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded bg-gray-100 group-active:bg-blue-100 text-gray-700 group-active:text-blue-700 text-[10px] sm:text-[11px] font-semibold tabular-nums transition-colors">
-                          Fra {formatKr(fromPrice)}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="mt-auto pt-2 flex items-center justify-between gap-2">
-                      <span className="text-[10px] sm:text-[11px] text-gray-500 group-active:text-blue-600 transition-colors">
-                        Tilføj til projektlisten
-                      </span>
-                      <span className="inline-flex items-center justify-center rounded-full border px-2.5 py-1 text-[11px] sm:text-xs border-gray-300 bg-white text-gray-700 group-active:border-blue-300 group-active:text-blue-700 transition-colors select-none">
-                        <span className="text-base sm:text-lg leading-none mr-1">
-                          +
-                        </span>
-                        Tilføj
-                      </span>
-                    </div>
-                  </div>
+                    );
+                  })}
+              </div>
+            </div>
+
+            {/* Valgte */}
+            {hasSelected && (
+              <div>
+                <div className="text-[11px] text-gray-500 mb-1.5">Valgte</div>
+                <div className="grid gap-3 sm:gap-3 grid-cols-[repeat(auto-fill,minmax(220px,1fr))]">
+                  {options
+                    .filter((o) => typeCounts[o.id] > 0)
+                    .map((opt) => {
+                      const count = typeCounts[opt.id] || 0;
+                      return (
+                        <div
+                          key={opt.id}
+                          className={`relative group bg-white rounded-lg border shadow-sm hover:shadow transition-all cursor-pointer active:bg-blue-50 active:ring-1 active:ring-blue-300/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 active:scale-[.985] overflow-hidden border-blue-400`}
+                          onClick={() => addItem(opt.id as AnyItem["typeId"])}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              addItem(opt.id as AnyItem["typeId"]);
+                            }
+                          }}
+                          tabIndex={0}
+                          role="button"
+                          aria-label={`Tilføj ${opt.label} (valgt ${count})`}
+                          title="Klik for at tilføje til projektlisten"
+                        >
+                          <span className="pointer-events-none absolute inset-x-0 bottom-0 h-1 bg-blue-500" />
+                          <span className="pointer-events-none absolute bottom-2 right-1 inline-flex items-center justify-center rounded-full bg-blue-600 text-white text-[10px] w-5 h-5 shadow-sm">
+                            {count}
+                          </span>
+                          <div className="p-2.5 sm:p-3 flex flex-col min-h-[92px] sm:min-h-[112px]">
+                            <div>
+                              <div className="flex items-center gap-1.5 text-[13px] sm:text-sm font-medium leading-snug">
+                                {opt.icon}
+                                <span
+                                  className="flex items-center gap-1 whitespace-nowrap"
+                                  title={opt.label}
+                                >
+                                  <span>{opt.label}</span>
+                                  <InfoTooltip text={opt.info} />
+                                </span>
+                                <span className="ml-auto" />
+                              </div>
+                            </div>
+                            <div className="mt-auto pt-1.5 flex items-center justify-between gap-2">
+                              <span className="text-[10px] sm:text-[11px] text-gray-500 group-active:text-blue-600 transition-colors">
+                                Klik for at tilføje
+                              </span>
+                              <span />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                 </div>
-              );
-            })}
+              </div>
+            )}
           </section>
 
           {/* Højre: PROJEKT LISTE */}
-          <aside className="lg:sticky lg:top-6 h-fit bg-white rounded-xl shadow p-4 w-full max-w-full lg:max-w-sm xl:max-w-[420px] mx-auto lg:mx-0">
+          <aside className="lg:sticky lg:top-6 h-fit bg-white rounded-xl shadow p-4 w-full max-w-full sm:max-w-xl md:max-w-2xl lg:max-w-sm xl:max-w-[420px] mx-auto lg:mx-0">
             <div className="flex items-center justify-between mb-2">
               <h2 className="text-base sm:text-lg font-semibold">
                 Projektliste
@@ -897,9 +1048,20 @@ export default function RenovationWithList() {
               </p>
             ) : (
               <div
-                className="space-y-4 overflow-y-auto pr-1 max-h-[55vh] md:max-h-[420px]"
+                ref={listRef}
+                className="space-y-4 overflow-y-auto overflow-x-hidden touch-pan-y pr-1 max-h-[55vh] md:max-h-[420px] overscroll-contain"
                 aria-label="Projekt liste elementer (scroll)"
               >
+                {/* Mobile sticky total inside the scroll area */}
+                <div className="md:hidden -mx-3 -mt-2 px-3 pt-2 pb-2 bg-white/95 backdrop-blur border-b border-gray-200 flex items-center justify-between">
+                  <span className="text-[10px] uppercase tracking-wide text-gray-500">
+                    Samlet
+                    <span className="ml-1 normal-case text-[10px] text-gray-500">(inkl. moms)</span>
+                  </span>
+                  <span className="text-sm font-semibold text-blue-700">
+                    {formatKr(smartRound(sumAdjusted))}
+                  </span>
+                </div>
                 {items.map((it) => {
                   const itemBase = calcItemBasePrice(it);
                   const itemAdj = calcItemAdjusted(itemBase);
@@ -907,16 +1069,28 @@ export default function RenovationWithList() {
                   return (
                     <div
                       key={it.uid}
-                      className="rounded-lg border border-gray-200 p-3 bg-gray-50"
+                      id={`proj-${it.uid}`}
+                      className="relative rounded-lg border border-gray-200 p-3 bg-gray-50"
                     >
+                      {/* Fjern button in top-right corner */}
+                      <button
+                        className="absolute top-2 right-2 inline-flex items-center gap-1 px-2 py-1 rounded border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 text-xs sm:text-sm"
+                        title="Fjern denne post"
+                        aria-label="Fjern denne post"
+                        onClick={() => removeItem(it.uid)}
+                      >
+                        <span aria-hidden>×</span>
+                        <span className="hidden sm:inline">Fjern</span>
+                      </button>
                       {/* Header */}
-                      <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-2 pr-12 sm:pr-20">
                         <div className="flex items-center gap-2 font-medium">
                           <span>
                             {options.find((o) => o.id === it.typeId)?.icon}
                           </span>
                           <span className="flex items-center gap-1 text-sm sm:text-base">
-                            {it.label}
+                            {options.find((o) => o.id === it.typeId)?.label ||
+                              it.label}
                             <InfoTooltip
                               text={
                                 options.find((o) => o.id === it.typeId)?.info
@@ -929,20 +1103,13 @@ export default function RenovationWithList() {
                             Før justering: {formatKr(itemBase)}
                           </span>
                           <span className="text-xs sm:text-sm font-semibold">
-                            {formatKr(itemAdj)}
+                            {formatKr(Math.round(itemAdj))}
                           </span>
-                          <button
-                            className="text-[10px] sm:text-[11px] text-gray-600 hover:text-gray-800"
-                            title="Fjern denne post"
-                            onClick={() => removeItem(it.uid)}
-                          >
-                            Fjern
-                          </button>
                         </div>
                       </div>
 
                       {/* Editor – pr. post */}
-                      <div className="mt-3 rounded-lg bg-white border border-gray-200 px-4 py-4 space-y-5 text-sm leading-relaxed">
+                      <div className="mt-3 rounded-lg bg-white border border-gray-200 px-4 py-4 space-y-5 text-sm leading-relaxed overflow-x-visible">
                         {it.typeId === "maling" && (
                           <PaintingEditor
                             item={it as Extract<AnyItem, { typeId: "maling" }>}
@@ -993,6 +1160,14 @@ export default function RenovationWithList() {
                             update={(k, v) => updateItem(it.uid, k, v)}
                           />
                         )}
+                        {it.typeId === "demolition" && (
+                          <DemolitionEditor
+                            item={
+                              it as Extract<AnyItem, { typeId: "demolition" }>
+                            }
+                            update={(k, v) => updateItem(it.uid, k, v)}
+                          />
+                        )}
                         {it.typeId === "heating" && (
                           <HeatingEditor
                             item={it as Extract<AnyItem, { typeId: "heating" }>}
@@ -1020,7 +1195,10 @@ export default function RenovationWithList() {
 
             {/* Sum */}
             <div className="mt-4 pt-4 border-t flex items-center justify-between text-sm sm:text-base">
-              <span className="text-xs sm:text-sm text-gray-600">Samlet</span>
+              <span className="text-xs sm:text-sm text-gray-600">
+                Samlet{" "}
+                <span className="text-[10px] text-gray-500">(inkl. moms)</span>
+              </span>
               <span className="text-sm sm:text-base font-bold text-blue-700">
                 {formatKr(smartRound(sumAdjusted))}
               </span>
@@ -1044,28 +1222,64 @@ export default function RenovationWithList() {
           </aside>
         </div>
       </main>
-      {/* Sticky mobil bund-bar (kun små skærme / kun når der er poster) */}
+      {/* Sticky mobil bund-bar (fast nederst) */}
       {items.length > 0 && (
         <div
           className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur border-t border-gray-200 px-4 pt-2 pb-2 pb-safe-bottom flex items-center justify-between shadow-lg"
           aria-label="Samlet pris sticky bar"
         >
           <div className="flex flex-col leading-tight">
-            <span className="text-[10px] uppercase tracking-wide text-gray-500">
-              Samlet
-            </span>
+            <span className="text-[10px] uppercase tracking-wide text-gray-500">Samlet</span>
+            <span className="text-[10px] text-gray-500">(inkl. moms)</span>
             <span className="text-base font-semibold text-blue-700">
               {formatKr(smartRound(sumAdjusted))}
             </span>
           </div>
           <button
-            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            onClick={() => {
+              // Try scrolling the project list first (if it can scroll)
+              const listEl = (document.querySelector('[aria-label="Projekt liste elementer (scroll)"]') as HTMLDivElement) || null;
+              if (listEl && listEl.scrollHeight > listEl.clientHeight) {
+                listEl.scrollTo({ top: listEl.scrollHeight, behavior: "smooth" });
+                return;
+              }
+              // Fallback: scroll the page to the bottom
+              const body = document.body;
+              const html = document.documentElement;
+              const height = Math.max(
+                body.scrollHeight,
+                html.scrollHeight,
+                body.offsetHeight,
+                html.offsetHeight,
+                body.clientHeight,
+                html.clientHeight
+              );
+              window.scrollTo({ top: height, behavior: "smooth" });
+            }}
             className="text-xs font-medium px-3 py-1.5 rounded-full bg-blue-600 text-white shadow hover:bg-blue-700 active:scale-[.97] transition"
           >
-            Til top
+            Til bunden
           </button>
         </div>
       )}
+      {/* Spacer to prevent overlap with fixed bottom bar on mobile */}
+      {items.length > 0 && <div className="md:hidden h-16" aria-hidden />}
+      {/* Disclaimer */}
+  <div className="mt-6 px-4 pb-8 text-[11px] sm:text-xs text-gray-600 max-w-3xl mx-auto">
+        <p className="flex items-start gap-1.5">
+          <AiOutlineInfoCircle className="mt-[2px] text-blue-600" />
+          <span>
+            <strong>Bemærk:</strong> Beregningen er vejledende og baseret på
+            overordnede forhold og vores erfaringspriser ud fra tidligere
+            projekter. Faktiske priser vil variere afhængigt af projektets
+            omfang, forhold på grunden og andre specifikke forhold. Vi anbefaler
+            altid at få en rådgiver til at gennemgå projektet for et mere
+            præcist estimat. Mads Windfeldt Arkitekter kan ikke holdes
+            ansvarlige for eventuelle afvigelser mellem prisberegnerens estimat
+            og den endelige projektøkonomi.
+          </span>
+        </p>
+      </div>
     </div>
   );
 }

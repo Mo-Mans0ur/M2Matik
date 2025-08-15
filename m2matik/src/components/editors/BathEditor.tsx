@@ -10,8 +10,28 @@ export const BathEditor: React.FC<Props> = ({ item, update }) => (
     <div className="flex gap-4 text-sm">
       {(
         [
+          { key: "bad", label: "Bad" },
+          { key: "toilet", label: "Toilet" },
+        ] as const
+      ).map((opt) => (
+        <label key={opt.key} className="inline-flex items-center gap-2">
+          <input
+            type="radio"
+            name={`bathKind_${item.uid}`}
+            value={opt.key}
+            checked={(item as any).roomKind === opt.key}
+            onChange={() => update("roomKind", opt.key)}
+            className="w-4 h-4 accent-blue-500"
+          />
+          {opt.label}
+        </label>
+      ))}
+    </div>
+    <div className="flex gap-4 text-sm">
+      {(
+        [
           { key: "same", label: "Samme placering" },
-          { key: "new", label: "Ny placering (+25.000 pr. bad)" },
+          { key: "new", label: "Ny placering" },
         ] as const
       ).map((opt) => (
         <label key={opt.key} className="inline-flex items-center gap-2">
@@ -27,47 +47,77 @@ export const BathEditor: React.FC<Props> = ({ item, update }) => (
         </label>
       ))}
     </div>
-    <label className="block text-sm text-gray-600">
-      Antal badeværelser: {Math.max(0, Math.min(5, (item as any).count ?? 1))}
-    </label>
-    <input
-      type="range"
-      min={0}
-      max={5}
-      step={1}
-      value={(item as any).count ?? 1}
-      onChange={(e) => update("count", parseInt(e.target.value, 10))}
-      className="w-full accent-blue-500 h-2 rounded-lg appearance-none cursor-pointer"
-      aria-label="Antal badeværelser"
-      title="Antal badeværelser"
-    />
+    {/* Kvalitet moved up; count removed */}
     <div className="h-px bg-gray-200 my-2" />
-    <label className="block text-sm text-gray-600">
-      Kvalitet (
-      {item.bathQuality === 0
-        ? "Billig"
-        : item.bathQuality === 1
-        ? "Middel"
-        : "Dyr"}
-      )
-    </label>
+    {(() => {
+      const q = Math.max(0, Math.min(4, item.bathQuality ?? 2));
+      const qName = ["Budget", "Basis", "Standard", "Premium", "Eksklusiv"][q];
+      return (
+        <label className="block text-sm text-gray-600">Kvalitet ({qName})</label>
+      );
+    })()}
     <input
       type="range"
       min={0}
-      max={2}
+      max={4}
       step={1}
-      value={item.bathQuality ?? 1}
-      onChange={(e) =>
-        update("bathQuality", parseInt(e.target.value, 10) as 0 | 1 | 2)
-      }
+      value={item.bathQuality ?? 2}
+      onChange={(e) => update("bathQuality", parseInt(e.target.value, 10))}
       className="w-full accent-blue-500 h-2 rounded-lg appearance-none cursor-pointer"
       aria-label="Vælg badkvalitet"
     />
-    <div className="relative h-4 mt-1 text-[11px] text-gray-500 select-none">
-      <span className="absolute left-0">Billig</span>
-      <span className="absolute left-1/2 -translate-x-1/2">Middel</span>
-      <span className="absolute right-0">Dyr</span>
+    <div className="mt-1 hidden sm:flex text-[11px] text-gray-500 select-none justify-between px-0.5">
+      <span>Budget</span>
+      <span>Basis</span>
+      <span>Standard</span>
+      <span>Premium</span>
+      <span>Eksklusiv</span>
     </div>
+    <label className="block text-sm text-gray-600">
+      Størrelse: {Math.max(2, Math.min(12, (item as any).sizeM2 ?? 6))} m²
+    </label>
+    <input
+      type="range"
+      min={2}
+      max={12}
+      step={1}
+      value={(item as any).sizeM2 ?? 6}
+      onChange={(e) => update("sizeM2", parseInt(e.target.value, 10))}
+      className="w-full accent-blue-500 h-2 rounded-lg appearance-none cursor-pointer"
+      aria-label="Størrelse i m2"
+    />
+    <div className="h-px bg-gray-200 my-2" />
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+      <label className="inline-flex items-center gap-2">
+        <input
+          type="checkbox"
+          className="w-4 h-4 accent-blue-500"
+          checked={!!(item as any).addons?.bruseniche}
+          onChange={(e) =>
+            update("addons", {
+              ...(item as any).addons,
+              bruseniche: e.target.checked,
+            })
+          }
+        />
+        Bruseniche
+      </label>
+      <label className="inline-flex items-center gap-2">
+        <input
+          type="checkbox"
+          className="w-4 h-4 accent-blue-500"
+          checked={!!(item as any).addons?.badekar}
+          onChange={(e) =>
+            update("addons", {
+              ...(item as any).addons,
+              badekar: e.target.checked,
+            })
+          }
+        />
+        Badekar
+      </label>
+    </div>
+    {/* Quality slider moved above; removed duplicate here */}
   </div>
 );
 export default BathEditor;

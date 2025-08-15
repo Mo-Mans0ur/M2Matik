@@ -15,6 +15,7 @@ export type ItemBase = {
     | "roof"
     | "Facade"
     | "walls"
+    | "demolition"
     | "heating"
     | "el"
     | "køkken";
@@ -23,7 +24,7 @@ export type ItemBase = {
 
 export type ItemMaling = ItemBase & {
   typeId: "maling";
-  paintQuality: 0 | 1 | 2; // 0=IKEA, 1=Hack, 2=Snedker
+  paintQuality: 0 | 1 | 2 | 3 | 4; // 5-stop slider: 0..4 (Budget..Eksklusiv)
   extras: { træværk?: boolean; paneler?: boolean; stuk?: boolean };
   // procent af boligen der skal males (0-100)
   coveragePercent?: number;
@@ -31,7 +32,7 @@ export type ItemMaling = ItemBase & {
 
 export type ItemGulv = ItemBase & {
   typeId: "gulv";
-  floorQuality: 0 | 1 | 2; // 0=IKEA, 1=Hack, 2=Snedker
+  floorQuality: 0 | 1 | 2 | 3 | 4; // 5-stop slider
   hasFloorHeating: boolean;
 };
 
@@ -39,7 +40,10 @@ export type ItemBad = ItemBase & {
   typeId: "bad";
   bathPlacement: "same" | "new";
   count: number; // antal badeværelser (0-5)
-  bathQuality?: 0 | 1 | 2; // 0=IKEA (lav), 1=Hack (normal), 2=Snedker (høj)
+  bathQuality?: 0 | 1 | 2 | 3 | 4; // 5-stop slider
+  roomKind?: "bad" | "toilet"; // type af rum
+  sizeM2?: number; // 2-12 m2 (UI)
+  addons?: { bruseniche?: boolean; badekar?: boolean };
 };
 
 export type ItemDøreVinduer = ItemBase & {
@@ -50,7 +54,7 @@ export type ItemDøreVinduer = ItemBase & {
   variant?: "doorWindowReplacement" | "newHole" | "newDoor" | "newWindow"; // legacy
   count: number;
   // Nye felter
-  quality?: 0 | 1 | 2; // IKEA/Hack/Snedker
+  quality?: 0 | 1 | 2 | 3 | 4; // 5-stop slider
   sizeScale?: number; // 0-100 cm (UI slider). Baseline 50 cm = normal størrelse
 };
 
@@ -64,7 +68,7 @@ export type ItemRoof = ItemBase & {
   typeId: "roof";
   // Ny model: én tagtype med hældning, kvalitet og tilvalg
   roofPitch: number; // hældning i grader (0-45)
-  roofQuality: 0 | 1 | 2; // 0=tagpap, 1=betontagsten, 2=vingetagsten
+  roofQuality: 0 | 1 | 2 | 3 | 4; // 5-stop slider
   extras: {
     saddeltag?: boolean;
     valm?: boolean;
@@ -82,13 +86,17 @@ export type ItemFacade = ItemBase & {
 
 export type ItemWalls = ItemBase & {
   typeId: "walls";
+  // Nye vægge
+  nyLet?: boolean; // ny letskillevæg
+  nyBærende?: boolean; // ny bærende væg
+};
+
+export type ItemDemolition = ItemBase & {
+  typeId: "demolition";
   // Nedrivning
   demoLet?: boolean; // let skillevæg
   demoBærende?: boolean; // bærende væg
   demoIndvendig?: boolean; // nedrivning af indvendig væg
-  // Nye vægge
-  nyLet?: boolean; // ny letskillevæg
-  nyBærende?: boolean; // ny bærende væg
 };
 
 export type ItemHeating = ItemBase & {
@@ -108,7 +116,7 @@ export type ItemEl = ItemBase & {
 export type ItemKitchen = ItemBase & {
   typeId: "køkken";
   placement: "same" | "new";
-  quality?: 0 | 1 | 2; // 0=IKEA, 1=Hack, 2=Snedker
+  quality?: 0 | 1 | 2 | 3 | 4; // 5-stop slider
 };
 
 export type AnyItem =
@@ -120,6 +128,7 @@ export type AnyItem =
   | ItemRoof
   | ItemFacade
   | ItemWalls
+  | ItemDemolition
   | ItemHeating
   | ItemEl
   | ItemKitchen;
@@ -152,7 +161,4 @@ export const newUID = () =>
 
 export const formatKr = (n: number) =>
   `${Math.max(n, 0).toLocaleString("da-DK")} kr.`;
-export const smartRound = (price: number) =>
-  price < 100000
-    ? Math.round(price / 5000) * 5000
-    : Math.round(price / 1000) * 1000;
+export const smartRound = (price: number) => Math.ceil(price / 1000) * 1000; // round up to nearest 1000

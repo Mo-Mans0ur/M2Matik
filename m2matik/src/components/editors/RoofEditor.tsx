@@ -8,7 +8,7 @@ interface Props {
 
 export const RoofEditor: React.FC<Props> = ({ item, update }) => {
   const pitch = Math.max(0, Math.min(45, item.roofPitch || 0));
-  const q = (item.roofQuality ?? 0) as 0 | 1 | 2;
+  const q = (item.roofQuality ?? 2) as number;
   const extras = item.extras || {};
 
   const updateExtra = (k: keyof ItemRoof["extras"], v: boolean | number) => {
@@ -46,27 +46,27 @@ export const RoofEditor: React.FC<Props> = ({ item, update }) => {
 
       {/* Kvalitet */}
       <div className="space-y-2">
-        <label className="text-xs font-medium">
-          Kvalitet (
-          {q === 0 ? "Tagpap" : q === 1 ? "Betontagsten" : "Vingetagsten"})
-        </label>
+        {(() => {
+          const name = ["Budget", "Basis", "Standard", "Premium", "Eksklusiv"][Math.max(0, Math.min(4, q))];
+          return <label className="text-xs font-medium">Kvalitet ({name})</label>;
+        })()}
         <input
           type="range"
           min={0}
-          max={2}
+          max={4}
           step={1}
           value={q}
-          onChange={(e) =>
-            update("roofQuality", parseInt(e.target.value, 10) as 0 | 1 | 2)
-          }
+          onChange={(e) => update("roofQuality", parseInt(e.target.value, 10))}
           className="w-full accent-blue-500 h-2 rounded-lg appearance-none cursor-pointer"
           aria-label="Kvalitet"
           title="Kvalitet"
         />
-        <div className="relative h-4 mt-1 text-[11px] text-gray-500 select-none">
-          <span className="absolute left-0">Tagpap</span>
-          <span className="absolute left-1/2 -translate-x-1/2">Beton</span>
-          <span className="absolute right-0">Vinge</span>
+        <div className="mt-1 hidden sm:flex text-[11px] text-gray-500 select-none justify-between px-0.5">
+          <span>Budget</span>
+          <span>Basis</span>
+          <span>Standard</span>
+          <span>Premium</span>
+          <span>Eksklusiv</span>
         </div>
       </div>
 

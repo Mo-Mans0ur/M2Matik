@@ -5,33 +5,28 @@ interface Props {
   item: ItemGulv;
   update: (key: string, val: unknown) => void;
 }
-export const FloorEditor: React.FC<Props> = ({ item, update }) => (
+export const FloorEditor: React.FC<Props> = ({ item, update }) => {
+  const q = Math.max(0, Math.min(4, item.floorQuality));
+  const qualityName = ["Budget", "Basis", "Standard", "Premium", "Eksklusiv"][q];
+  return (
   <div className="space-y-2">
-    <label className="block text-sm text-gray-600">
-      Kvalitet (
-      {item.floorQuality === 0
-        ? "IKEA"
-        : item.floorQuality === 1
-        ? "Hack"
-        : "Snedker"}
-      )
-    </label>
+    <label className="block text-sm text-gray-600">Kvalitet ({qualityName})</label>
     <input
       type="range"
       min={0}
-      max={2}
+      max={4}
       step={1}
       value={item.floorQuality}
-      onChange={(e) =>
-        update("floorQuality", parseInt(e.target.value, 10) as 0 | 1 | 2)
-      }
+      onChange={(e) => update("floorQuality", parseInt(e.target.value, 10))}
       className="w-full accent-blue-500 h-2 rounded-lg appearance-none cursor-pointer"
       title="Vælg gulvkvalitet"
     />
-    <div className="relative h-4 mt-1 text-[11px] text-gray-500 select-none">
-      <span className="absolute left-0">IKEA</span>
-      <span className="absolute left-1/2 -translate-x-1/2">Hack</span>
-      <span className="absolute right-0">Snedker</span>
+    <div className="mt-1 hidden sm:flex text-[11px] text-gray-500 select-none justify-between px-0.5">
+      <span>Budget</span>
+      <span>Basis</span>
+      <span>Standard</span>
+      <span>Premium</span>
+      <span>Eksklusiv</span>
     </div>
     <label className="inline-flex items-center gap-2">
       <input
@@ -43,5 +38,5 @@ export const FloorEditor: React.FC<Props> = ({ item, update }) => (
       Gulvvarme
     </label>
   </div>
-);
+)};
 export default FloorEditor;

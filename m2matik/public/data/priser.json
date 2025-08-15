@@ -1,0 +1,121 @@
+{
+  "base": {
+    "maling": {
+      "startpris": 5000,
+      "m2pris": 1400,
+      "faktorLav": 0.6,
+      "faktorNormal": 1,
+      "faktorHøj": 1.4
+    },
+    "stuk": {
+      "startpris": 0,
+      "m2pris": 300,
+      "faktorLav": 0.5,
+      "faktorNormal": 1,
+      "faktorHøj": 1.4
+    },
+    "højePaneler": {
+      "startpris": 0,
+      "m2pris": 300,
+      "faktorLav": 0.5,
+      "faktorNormal": 1,
+      "faktorHøj": 1.4
+    },
+    "badeværelse": {
+      "startpris": 250000,
+      "m2pris": 100,
+      "faktorLav": 0.8,
+      "faktorNormal": 1,
+      "faktorHøj": 1.2
+    },
+    "køkken": {
+      "startpris": 300000,
+      "m2pris": 1500,
+      "faktorLav": 0.3,
+      "faktorNormal": 1,
+      "faktorHøj": 2
+    },
+    "elektriker": {
+      "startpris": 20000,
+      "m2pris": 1000,
+      "faktorLav": 1,
+      "faktorNormal": 1,
+      "faktorHøj": 1
+    },
+    "døreOgVinduer": {
+      "startpris": 0,
+      "m2pris": 20000,
+      "faktorLav": 0.8,
+      "faktorNormal": 1,
+      "faktorHøj": 2
+    },
+    "tag": {
+      "startpris": 30000,
+      "m2pris": 2500,
+      "faktorLav": 0.7,
+      "faktorNormal": 1,
+      "faktorHøj": 2
+    },
+    "terrasse": {
+      "startpris": 10000,
+      "m2pris": 3000,
+      "faktorLav": 0.6,
+      "faktorNormal": 1,
+      "faktorHøj": 1.4
+    },
+    "gulv": {
+      "startpris": 10000,
+      "m2pris": 1000,
+      "faktorLav": 0.4,
+      "faktorNormal": 1,
+      "faktorHøj": 2
+    }
+  },
+  "extras": {
+    "maling": [
+      {
+        "name": "træværk (fast)",
+        "kind": "fixed",
+        "amount": 5000
+      },
+      {
+        "name": "træværk (pr. m²)",
+        "kind": "per_m2",
+        "amount": 800
+      }
+    ],
+    "badeværelse": [
+      {
+        "name": "ny placering bad",
+        "kind": "fixed",
+        "amount": 25000
+      }
+    ],
+    "elektriker": [
+      {
+        "name": "ny tavle",
+        "kind": "fixed",
+        "amount": 30000
+      },
+      {
+        "name": "ny tavle (pr. m²)",
+        "kind": "per_m2",
+        "amount": 300
+      }
+    ],
+    "døre og vinduer": [
+      {
+        "name": "tillæg  ved nyt",
+        "kind": "fixed",
+        "amount": 40000
+      }
+    ],
+    "terrasse": [
+      {
+        "name": "tilvalg trappe",
+        "kind": "fixed",
+        "amount": 20000
+      }
+    ]
+  }
+}

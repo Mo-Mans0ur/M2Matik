@@ -9,21 +9,6 @@ interface Props {
 export const DoorWindowEditor: React.FC<Props> = ({ item, update }) => {
   return (
     <div className="space-y-2">
-      {/* Linje 1: Dør / Vindue (eksisterende åbningstype) */}
-      <div className="flex gap-4 flex-wrap">
-        {(["door", "window"] as const).map((val) => (
-          <label key={val} className="inline-flex items-center text-sm gap-1">
-            <input
-              type="radio"
-              name={`dw_choice_${item.uid}`}
-              value={val}
-              checked={item.choice === val}
-              onChange={() => update("choice", val)}
-            />
-            {val === "door" ? "Dør" : "Vindue"}
-          </label>
-        ))}
-      </div>
       {/* Linje 2: Udskiftning / Nyt hul */}
       <div className="flex gap-4 flex-wrap pt-1 border-t mt-1">
         {(
@@ -75,34 +60,32 @@ export const DoorWindowEditor: React.FC<Props> = ({ item, update }) => {
       </label>
 
       {/* Kvalitet og Størrelse sliders */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t">
+      <div className="space-y-3 pt-2 border-t">
         <div>
-          <label className="block text-xs text-gray-600">
-            Kvalitet (
-            {(item.quality ?? 1) === 0
-              ? "IKEA"
-              : (item.quality ?? 1) === 1
-              ? "Hack"
-              : "Snedker"}
-            )
-          </label>
+          {(() => {
+            const q = Math.max(0, Math.min(4, item.quality ?? 2));
+            const name = ["Budget", "Basis", "Standard", "Premium", "Eksklusiv"][q];
+            return (
+              <label className="block text-xs text-gray-600">Kvalitet ({name})</label>
+            );
+          })()}
           <input
             type="range"
             min={0}
-            max={2}
+            max={4}
             step={1}
-            value={item.quality ?? 1}
-            onChange={(e) =>
-              update("quality", parseInt(e.target.value, 10) as 0 | 1 | 2)
-            }
+            value={item.quality ?? 2}
+            onChange={(e) => update("quality", parseInt(e.target.value, 10))}
             className="w-full accent-blue-500 h-2 rounded-lg appearance-none cursor-pointer"
             aria-label="Kvalitet"
             title="Kvalitet"
           />
-          <div className="relative h-4 mt-1 text-[11px] text-gray-500 select-none">
-            <span className="absolute left-0">IKEA</span>
-            <span className="absolute left-1/2 -translate-x-1/2">Hack</span>
-            <span className="absolute right-0">Snedker</span>
+          <div className="mt-1 hidden sm:flex text-[11px] text-gray-500 select-none justify-between px-0.5">
+            <span>Budget</span>
+            <span>Basis</span>
+            <span>Standard</span>
+            <span>Premium</span>
+            <span>Eksklusiv</span>
           </div>
         </div>
         <div>

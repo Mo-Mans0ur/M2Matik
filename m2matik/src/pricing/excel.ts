@@ -21,7 +21,7 @@ const norm = (s: string) =>
   String(s || "")
     .toLowerCase()
     .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/\s+/g, "")
     .replace(/[^a-z0-9_.-]/g, "");
 
@@ -164,12 +164,11 @@ export async function loadPricingFromExcel(
       const cat = norm("døre og vinduer");
       if (!extras[cat]) extras[cat] = [];
       const val = m2pris > 0 ? m2pris : startpris; // treat as fixed per-unit add-on
-      if (val > 0)
-        extras[cat].push({ name: rawName, kind: "fixed", amount: val });
+      if (val > 0) extras[cat].push({ name: rawName, kind: "fixed", amount: val });
     }
   }
 
-  // Parse 'tag' section (roof)
+  // Parse 'tag' section (roof) and any post-tag categories/extras (e.g., Terasse, Gulve)
   for (let r = i + 1; r < A.length; r++) {
     const row = A[r] as any[];
     const rawName = String(row?.[0] ?? "").trim();
@@ -186,10 +185,42 @@ export async function loadPricingFromExcel(
         key: norm("tag"),
         startpris: isFinite(startpris) ? startpris : 0,
         m2pris: isFinite(m2pris) ? m2pris : 0,
-        faktorLav:
-          isFinite(faktorLav) && faktorLav !== 0 ? faktorLav : undefined,
-        faktorHøj:
-          isFinite(faktorHøj) && faktorHøj !== 0 ? faktorHøj : undefined,
+        faktorLav: isFinite(faktorLav) && faktorLav !== 0 ? faktorLav : undefined,
+        faktorHøj: isFinite(faktorHøj) && faktorHøj !== 0 ? faktorHøj : undefined,
+      };
+      continue;
+    }
+
+    // Base for terrace may appear after the 'tag' section and be spelled 'Terasse' (one 'r')
+    if (name === norm("terrasse") || name === norm("terasse")) {
+      const startpris = parseDkNumber(startIdx >= 0 ? row[startIdx] : 0);
+      const m2pris = parseDkNumber(m2Idx >= 0 ? row[m2Idx] : 0);
+      const faktorLav = lavIdx >= 0 ? parseDkNumber(row[lavIdx]) : 0;
+      const faktorHøj = hojIdx >= 0 ? parseDkNumber(row[hojIdx]) : 0;
+      // Normalize storage key to the correct double-r variant
+      base[norm("terrasse")] = {
+        key: norm("terrasse"),
+        startpris: isFinite(startpris) ? startpris : 0,
+        m2pris: isFinite(m2pris) ? m2pris : 0,
+        faktorLav: isFinite(faktorLav) && faktorLav !== 0 ? faktorLav : undefined,
+        faktorHøj: isFinite(faktorHøj) && faktorHøj !== 0 ? faktorHøj : undefined,
+      };
+      continue;
+    }
+
+    // Base for floors may appear as plural 'Gulve' after the 'tag' section
+    if (name === norm("gulv") || name === norm("gulve")) {
+      const startpris = parseDkNumber(startIdx >= 0 ? row[startIdx] : 0);
+      const m2pris = parseDkNumber(m2Idx >= 0 ? row[m2Idx] : 0);
+      const faktorLav = lavIdx >= 0 ? parseDkNumber(row[lavIdx]) : 0;
+      const faktorHøj = hojIdx >= 0 ? parseDkNumber(row[hojIdx]) : 0;
+      // Store under singular key
+      base[norm("gulv")] = {
+        key: norm("gulv"),
+        startpris: isFinite(startpris) ? startpris : 0,
+        m2pris: isFinite(m2pris) ? m2pris : 0,
+        faktorLav: isFinite(faktorLav) && faktorLav !== 0 ? faktorLav : undefined,
+        faktorHøj: isFinite(faktorHøj) && faktorHøj !== 0 ? faktorHøj : undefined,
       };
       continue;
     }
@@ -201,37 +232,57 @@ export async function loadPricingFromExcel(
       const m2Val = parseDkNumber(m2Idx >= 0 ? row[m2Idx] : 0);
       // Heuristics: small values in m2 column around 1-3 are factors
       const factorCandidate = m2Val && m2Val >= 0.9 && m2Val <= 5 ? m2Val : 0;
-      const isKvist =
-        name.includes(norm("kvist")) || name.includes(norm("kviste"));
+      const isKvist = name.includes(norm("kvist")) || name.includes(norm("kviste"));
       if (factorCandidate) {
-        extras[norm("tag")].push({
-          name: rawName,
-          kind: "factor",
-          amount: factorCandidate,
-        });
+        extras[norm("tag")].push({ name: rawName, kind: "factor", amount: factorCandidate });
       }
       if (isKvist) {
         const val = startVal > 0 ? startVal : m2Val;
         if (val > 0)
-          extras[norm("tag")].push({
-            name: rawName,
-            kind: "fixed",
-            amount: val,
-          });
+          extras[norm("tag")].push({ name: rawName, kind: "fixed", amount: val });
       } else {
         if (startVal > 0)
-          extras[norm("tag")].push({
-            name: rawName,
-            kind: "fixed",
-            amount: startVal,
-          });
+          extras[norm("tag")].push({ name: rawName, kind: "fixed", amount: startVal });
         if (!factorCandidate && m2Val > 0)
-          extras[norm("tag")].push({
-            name: rawName,
-            kind: "per_m2",
-            amount: m2Val,
-          });
+          extras[norm("tag")].push({ name: rawName, kind: "per_m2", amount: m2Val });
       }
+      continue;
+    }
+
+    // Terrace factor extras: e.g., 'faktor ved hævet', 'faktor  ved værn'
+    if (name.includes(norm("faktor")) && (name.includes(norm("hæv")) || name.includes(norm("haev")) || name.includes(norm("værn")) || name.includes(norm("vaern")))) {
+      if (!extras[norm("terrasse")]) extras[norm("terrasse")] = [];
+      const m2Val = parseDkNumber(m2Idx >= 0 ? row[m2Idx] : 0);
+      const startVal = parseDkNumber(startIdx >= 0 ? row[startIdx] : 0);
+      const factorCandidate = m2Val && m2Val >= 0.9 && m2Val <= 5 ? m2Val : 0;
+      const amount = factorCandidate || (startVal >= 0.9 && startVal <= 5 ? startVal : 0);
+      if (amount)
+        extras[norm("terrasse")].push({ name: rawName, kind: "factor", amount });
+      continue;
+    }
+
+    // Terrace fixed/per-m2 extra: e.g., 'tilvalg trappe'
+    if (name.includes(norm("trappe"))) {
+      if (!extras[norm("terrasse")]) extras[norm("terrasse")] = [];
+      const startVal = parseDkNumber(startIdx >= 0 ? row[startIdx] : 0);
+      const m2Val = parseDkNumber(m2Idx >= 0 ? row[m2Idx] : 0);
+      if (startVal > 0)
+        extras[norm("terrasse")].push({ name: rawName, kind: "fixed", amount: startVal });
+      if (m2Val > 0)
+        extras[norm("terrasse")].push({ name: rawName, kind: "per_m2", amount: m2Val });
+      continue;
+    }
+
+    // Floor extra: e.g., 'tillæg gulvvarme'
+    if (name.includes(norm("gulvvarme")) || (name.includes(norm("gulv")) && name.includes(norm("varme")))) {
+      if (!extras[norm("gulv")]) extras[norm("gulv")] = [];
+      const startVal = parseDkNumber(startIdx >= 0 ? row[startIdx] : 0);
+      const m2Val = parseDkNumber(m2Idx >= 0 ? row[m2Idx] : 0);
+      if (startVal > 0)
+        extras[norm("gulv")].push({ name: rawName, kind: "fixed", amount: startVal });
+      if (m2Val > 0)
+        extras[norm("gulv")].push({ name: rawName, kind: "per_m2", amount: m2Val });
+      continue;
     }
   }
 
@@ -247,12 +298,7 @@ export async function loadPricingFromExcel(
     if (!(okStart && okM2 && okLav && okHoj)) {
       console.warn("Excel painting row differs from expected defaults", {
         got: maling,
-        expected: {
-          startpris: 5000,
-          m2pris: 1400,
-          faktorLav: "~0.6",
-          faktorHøj: "~1.4",
-        },
+        expected: { startpris: 5000, m2pris: 1400, faktorLav: "~0.6", faktorHøj: "~1.4" },
       });
     }
   }
@@ -279,18 +325,8 @@ export function calcBaseTotal(
   quality: FaktorLabel
 ) {
   const r: ExcelPriceRow = row || { key: "", startpris: 0, m2pris: 0 };
-  const factor =
-    quality === "lav"
-      ? r.faktorLav ?? 1
-      : quality === "høj"
-      ? r.faktorHøj ?? 1
-      : 1;
-  const total = Math.max(
-    0,
-    Math.round(
-      (r.startpris || 0) + Math.max(0, areaM2) * (r.m2pris || 0) * factor
-    )
-  );
+  const factor = quality === "lav" ? r.faktorLav ?? 1 : quality === "høj" ? r.faktorHøj ?? 1 : 1;
+  const total = Math.max(0, Math.round((r.startpris || 0) + Math.max(0, areaM2) * (r.m2pris || 0) * factor));
   return total;
 }
 
@@ -338,6 +374,8 @@ export function computeWithTagExtras(
 // Adapter: UI option ids -> Excel arbejdstype keys
 export const UI_TO_EXCEL_KEY: Record<string, string> = {
   maling: norm("maling"),
+  gulv: norm("gulv"),
+  terrasse: norm("terrasse"),
   bad: norm("badeværelse"),
   køkken: norm("køkken"),
   el: norm("elektriker"),

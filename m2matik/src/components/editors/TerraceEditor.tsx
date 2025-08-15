@@ -8,21 +8,20 @@ interface Props {
 export const TerraceEditor: React.FC<Props> = ({ item, update }) => (
   <div className="space-y-4">
     <div>
-      <label
-        htmlFor={`terrace_area_${item.uid}`}
-        className="text-sm text-gray-600 flex items-center gap-2"
-      >
-        Størrelse (m²)
-        <input
-          id={`terrace_area_${item.uid}`}
-          type="number"
-          min={0}
-          value={item.area}
-          onChange={(e) => update("area", Math.max(0, Number(e.target.value)))}
-          className="w-28 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-          placeholder="0"
-        />
+      <label className="block text-sm text-gray-600">
+        Størrelse (m²): <span className="font-medium">{item.area}</span>
       </label>
+      <input
+        id={`terrace_area_${item.uid}`}
+        type="range"
+        min={0}
+        max={200}
+        step={1}
+        value={item.area}
+        onChange={(e) => update("area", Math.max(0, parseInt(e.target.value, 10)))}
+        className="w-full accent-blue-500 h-2 rounded-lg appearance-none cursor-pointer mt-1"
+        title="Vælg terrasse størrelse i m²"
+      />
     </div>
     <div className="flex flex-wrap gap-4 text-sm">
       {(
