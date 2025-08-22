@@ -29,21 +29,14 @@ import { loadProjectMeta, saveProjectMeta } from "../lib/storage";
 import type { ProjectMeta } from "../lib/storage";
 import type { AnyItem, ItemDøreVinduer } from "./renovationTypes";
 import novaPoint from "../assets/pictures/nova_point.png";
-import {
-  BASE_DATE,
-  ANNUAL_ADJUSTMENT,
-  newUID,
-  perM2,
-  formatKr,
-  smartRound,
-} from "./renovationTypes";
+import { newUID, formatKr, smartRound } from "./renovationTypes";
 import {
   loadPricesJson,
   type JsonData,
   type JsonPrice,
-  baseTotal,
   extrasTotal,
-  total as sumTotal,
+  applyPostnr,
+  applyEscalation,
 } from "../pricing/json";
 
 // ---------- Komponent ----------
@@ -183,11 +176,7 @@ export default function RenovationWithList() {
     },
   ] as const;
 
-  // Auto prisjustering
-  const yearsSinceBase = () =>
-    (new Date().getTime() - BASE_DATE.getTime()) / (1000 * 60 * 60 * 24 * 365);
-
-  const autoFactor = Math.pow(1 + ANNUAL_ADJUSTMENT, yearsSinceBase());
+  // Escalation handled via priser.json global.escalation later (no local autoFactor)
 
   // Tilføj en ny post ud fra kortvalg
   const addItem = (typeId: AnyItem["typeId"]) => {
@@ -223,7 +212,7 @@ export default function RenovationWithList() {
           bathQuality: 2,
           roomKind: "bad",
           sizeM2: 6,
-          addons: { bruseniche: false, badekar: false },
+          addons: { bruseniche: false },
         };
         break;
       case "døreOgVinduer":
@@ -341,13 +330,14 @@ export default function RenovationWithList() {
     );
   };
 
-  // Pris for én post (før auto + manuel)
-  const calcItemBasePrice = (it: AnyItem): number => {
-    const basementFactor = meta?.basement ? 1.2 : 1;
-    const firstFloorFactor = meta?.firstFloor ? 1.1 : 1;
+  // Pris for én post (subtotal: base + extras; globals/postnr/escalation applied later)
+  const calcItemSubtotal = (it: AnyItem): number => {
+    const globalMult = pricing?.global?.multipliers ?? {};
+    const basementFactor = meta?.basement ? (globalMult.basement ?? 1) : 1;
+    const firstFloorFactor = meta?.firstFloor ? (globalMult.firstFloor ?? 1) : 1;
 
-    let price = 0;
-    let applyStoreyFactors = true; // disable for exterior where not relevant
+  let price = 0;
+  let applyStoreyFactors = true; // disable for exterior where not relevant
 
     // 5-step quality factor helper: index 0..4 → [lav..1..høj]
     const fiveStepFactor = (idx: number, lav: number, høj: number) => {
@@ -367,7 +357,7 @@ export default function RenovationWithList() {
     const interpFaktor = (idx: number, row?: JsonPrice) =>
       fiveStepFactor(idx, row?.faktorLav ?? 1, row?.faktorHøj ?? 1);
 
-    // Compute base price with explicit faktor value (keeps startpris outside the faktor)
+    // Compute base price with explicit faktor value respecting beregning mode
     const baseWith = (
       row: JsonPrice | undefined,
       area: number,
@@ -381,10 +371,26 @@ export default function RenovationWithList() {
           faktorLav: 1,
           faktorNormal: 1,
           faktorHøj: 1,
+          beregning: "faktor_pa_m2_og_start",
         } as JsonPrice);
-      const total =
-        (r.startpris || 0) +
-        Math.max(0, area) * (r.m2pris || 0) * (faktor || 1);
+      const sqm = Math.max(0, area);
+      let total = 0;
+      switch (r.beregning) {
+        case "faktor_kun_pa_start":
+          total = (r.startpris || 0) * (faktor || 1) + (r.m2pris || 0) * sqm;
+          break;
+        case "kun_start_med_faktor":
+          total = (r.startpris || 0) * (faktor || 1);
+          break;
+        case "kun_start":
+          total = r.startpris || 0;
+          break;
+        case "kun_m2":
+          total = (r.m2pris || 0) * sqm;
+          break;
+        default:
+          total = ((r.startpris || 0) + (r.m2pris || 0) * sqm) * (faktor || 1);
+      }
       return Math.max(0, Math.round(total));
     };
 
@@ -399,10 +405,7 @@ export default function RenovationWithList() {
         const malRow = pricing?.base?.["maling"];
         price += baseWith(malRow, areaCovered, interpFaktor(qIdx, malRow));
 
-        // Independent lines: Høje paneler and Stuk with their own area/quality
-        // Treat as separate base entries if present in JSON base, otherwise as painting extras
-        const qFactorFrom = (idx: number, row?: JsonPrice) =>
-          interpFaktor(idx, row);
+  // Independent lines handled as extras below
 
         // Træværk: add as additive extra if selected (fixed and/or per m² lines in JSON)
         if (m.extras?.["træværk"]) {
@@ -415,34 +418,17 @@ export default function RenovationWithList() {
           price += addTv;
         }
 
-        if (m.extras?.paneler) {
-          const row = pricing?.base?.["højePaneler"];
-          if (row) {
-            price += baseWith(row, AREA, qFactorFrom(qIdx, row));
-          } else {
-            // fallback to extras list under maling
-            const add = extrasTotal(
-              pricing?.extras?.["maling"],
-              AREA,
-              ["høje", "paneler"],
-              "maling:høje paneler"
-            );
-            price += add;
-          }
-        }
-        if (m.extras?.stuk) {
-          const row = pricing?.base?.["stuk"];
-          if (row) {
-            price += baseWith(row, AREA, qFactorFrom(qIdx, row));
-          } else {
-            const add = extrasTotal(
-              pricing?.extras?.["maling"],
-              AREA,
-              ["stuk"],
-              "maling:stuk"
-            );
-            price += add;
-          }
+        const extraNames: string[] = [];
+        if (m.extras?.paneler) extraNames.push("høje", "paneler");
+        if (m.extras?.stuk) extraNames.push("stuk");
+        if (extraNames.length) {
+          const add = extrasTotal(
+            pricing?.extras?.["maling"],
+            AREA,
+            extraNames,
+            "maling:extras"
+          );
+          price += add;
         }
         break;
       }
@@ -457,30 +443,32 @@ export default function RenovationWithList() {
             ["gulvvarme"],
             "gulv:varme"
           );
-          price += addVarme > 0 ? addVarme : Math.round(500 * AREA);
+          price += addVarme;
         }
         break;
       }
       case "bad": {
         const b = it as Extract<AnyItem, { typeId: "bad" }>;
-        // Base from priser.json using exact formula
-        const qIdx = b.bathQuality ?? 2;
-        const row = pricing?.base?.["badeværelse"];
+  const qIdx = b.bathQuality ?? 2;
+  const row = b.roomKind === "toilet" ? pricing?.base?.["toilet"] : pricing?.base?.["badeværelse"];
         const sz = Math.max(2, Math.min(12, b.sizeM2 ?? 6));
         const n = Math.max(1, Math.min(5, b.count ?? 1));
-        // Apply faktor to the whole base (startpris + m²-delen)
-        const faktor = interpFaktor(qIdx, row);
+  const faktor = interpFaktor(qIdx, row);
         const baseUnfactored = baseWith(row, sz, 1);
         let base = Math.round(baseUnfactored * faktor) * n;
-        if (b.bathPlacement === "new") {
-          // Ny placering tillæg per rum
-          base +=
-            extrasTotal(
-              pricing?.extras?.["badeværelse"],
-              1,
-              ["placering"],
-              "bad:ny placering"
-            ) * n;
+  const picks: string[] = [];
+        if (b.bathPlacement === "new") picks.push("placering");
+  if (b.addons?.bruseniche) picks.push("bruseniche");
+        if (picks.length) {
+          base = extrasTotal(
+            pricing?.extras?.["badeværelse"],
+            sz,
+            picks,
+            "bad:extras",
+            n,
+            undefined,
+            base
+          );
         }
         price += base;
         break;
@@ -513,12 +501,17 @@ export default function RenovationWithList() {
         const cnt = Math.max(0, doorWin.count || 0);
         const row = pricing?.base?.["døreOgVinduer"];
         let unit = baseWith(row, 1, interpFaktor(qIdx, row));
-        if (operation === "newHole") {
-          unit += extrasTotal(
+        const picks: string[] = [];
+        if (operation === "newHole") picks.push("nyt", "hul");
+        if (picks.length) {
+          unit = extrasTotal(
             pricing?.extras?.["døre og vinduer"],
             1,
-            ["nyt", "hul"],
-            "døre/vinduer:nyt hul"
+            picks,
+            "døre/vinduer:extras",
+            1,
+            undefined,
+            unit
           );
         }
         price += Math.round(unit) * cnt;
@@ -526,181 +519,127 @@ export default function RenovationWithList() {
       }
       case "terrasse": {
         const t = it as Extract<AnyItem, { typeId: "terrasse" }>;
-        // Terrasse: 5-trins kvalitetsfaktor + multiplicative/additive extras
         const areaM2 = Math.max(0, t.area);
         const qIdx = (t.terraceQuality ?? 2) as number;
         const row = pricing?.base?.["terrasse"];
-        // Use same 5-step interpolation approach as other categories
-        let base = ((): number => {
-          if (row) {
-            return Math.max(
-              0,
-              Math.round(
-                (row.startpris || 0) +
-                  Math.max(0, areaM2) *
-                    (row.m2pris || 0) *
-                    interpFaktor(qIdx, row)
-              )
-            );
-          }
-          // fallback via helper
-          return baseTotal(row, areaM2, "normal", "terrasse");
-        })();
-        // Apply multiplicative factors for hævet/værn
-        let mult = 1;
-        if (t.extra?.hævet) mult *= 1.5;
-        if (t.extra?.værn) mult *= 1.2;
-        base = Math.round(base * mult);
-        // Add additive extras (e.g., trappe) from JSON if present
+        let base = baseWith(row, areaM2, interpFaktor(qIdx, row));
         const picks: string[] = [];
+        if (t.extra?.hævet) picks.push("hævet");
+        if (t.extra?.værn) picks.push("værn");
         if (t.extra?.trappe) picks.push("trappe");
-        const add = extrasTotal(
-          pricing?.extras?.["terrasse"],
-          areaM2,
-          picks,
-          "terrasse:extras"
-        );
-        price += sumTotal(base, add);
+        if (picks.length) {
+          base = extrasTotal(
+            pricing?.extras?.["terrasse"],
+            areaM2,
+            picks,
+            "terrasse:extras",
+            1,
+            undefined,
+            base
+          );
+        }
+        price += base;
         break;
       }
       case "roof": {
         applyStoreyFactors = false;
-        // Roof pricing using five-step interpoleret faktor (lav..høj) and JSON extras
         const r = it as Extract<AnyItem, { typeId: "roof" }>;
         const qIdx = (r.roofQuality ?? 2) as number;
         const toggles = r.extras || {};
         const tagRow = pricing?.base?.["tag"];
         let base = baseWith(tagRow, AREA, interpFaktor(qIdx, tagRow));
-        // Additive extras (fixed/per m²)
-        const addPicks = [
-          toggles.efterisolering ? "efterisolering" : "",
-          toggles.undertag ? "undertag" : "",
-        ].filter(Boolean) as string[];
-        if (addPicks.length) {
-          const addFromJson = extrasTotal(
+        const picks: string[] = [];
+        if (toggles.efterisolering) picks.push("efterisolering");
+        if (toggles.undertag) picks.push("undertag");
+        if (toggles.saddeltag) picks.push("saddeltag");
+        if (toggles.valm) picks.push("valm");
+        if ((toggles.kviste || 0) > 0) picks.push("kvist");
+        const slope = Math.max(0, Math.min(90, r.roofPitch || 0));
+        if (picks.length) {
+          base = extrasTotal(
             pricing?.extras?.["tag"],
             AREA,
-            addPicks,
-            "tag:additives"
+            picks,
+            "tag:extras",
+            Math.max(0, Number(toggles.kviste || 0)),
+            slope,
+            base
           );
-          let add = addFromJson;
-          // Fallback: Efterisolering = 2.000 kr pr. m² if not provided in JSON
-          if (toggles.efterisolering && addFromJson === 0) {
-            add += Math.round(2000 * AREA);
-          }
-          base += add;
         }
-        // Kviste per piece
-        const dormers = Number(toggles.kviste || 0);
-        if (dormers > 0) {
-          const list = pricing?.extras?.["tag"] || [];
-          let perPiece = 0;
-          for (const e of list) {
-            const name = String(e.name).toLowerCase();
-            if (
-              (name.includes("kvist") || name.includes("kviste")) &&
-              e.kind === "fixed"
-            ) {
-              perPiece = Math.max(perPiece, Math.round(e.amount));
-            }
-          }
-          // Fallback if ikke fundet i JSON: 80.000 kr pr. kvist (fra Excel)
-          if (perPiece <= 0) perPiece = 80000;
-          base += perPiece * dormers;
-        }
-        // Multiplicative factors for tagtype (saddeltag/valm) if selected
-        let mult = 1;
-        if (toggles.saddeltag) mult *= 1.2;
-        if (toggles.valm) mult *= 1.2;
-        base = Math.round(base * mult);
-        // Pitch factor: 0° -> 1.0, 45° -> 2.0 (linear)
-        const pitch = Math.max(0, Math.min(45, r.roofPitch || 0));
-        const pitchFactor = 1 + (pitch / 45) * (2 - 1);
-        price += Math.round(base * pitchFactor);
+        price += base;
         break;
       }
       case "Facade": {
-        // finishRate: male 250, pudse 200, træ 300 + optionel efterisolering 200
-        const finishRate =
-          it.finish === "male" ? 250 : it.finish === "pudse" ? 200 : 300;
-        const afterIsoRate = it.afterIso ? 200 : 0;
-        price += AREA * (finishRate + afterIsoRate);
+        const picks: string[] = [];
+        if (it.finish === "male") picks.push("male");
+        if (it.finish === "pudse") picks.push("pudse");
+        if (it.finish === "træ") picks.push("træ");
+        if (it.afterIso) picks.push("efterisolering");
+        price += extrasTotal(pricing?.extras?.["facade"], AREA, picks, "facade:extras");
         break;
       }
       case "walls": {
         const w = it as Extract<AnyItem, { typeId: "walls" }>;
-        // Nye vægge
-        if (w.nyLet) price += 9000;
-        if (w.nyBærende) price += 18000;
-        if (price === 0) price += perM2.walls; // baseline badge/fallback
+        const baseRow = pricing?.base?.["walls"];
+        let base = baseWith(baseRow, AREA, 1);
+        const picks: string[] = [];
+        if (w.nyLet) picks.push("nyLet");
+        if (w.nyBærende) picks.push("nyBærende");
+        if (picks.length) {
+          base = extrasTotal(pricing?.extras?.["walls"], AREA, picks, "walls:extras", 1, undefined, base);
+        }
+        price += base;
         break;
       }
       case "demolition": {
         const d = it as Extract<AnyItem, { typeId: "demolition" }>;
-        if (d.demoLet) price += 7000;
-        if (d.demoBærende) price += 15000;
-        if (d.demoIndvendig) price += 6000;
-        if (price === 0) price += 0; // no baseline
+        const picks: string[] = [];
+        if (d.demoLet) picks.push("let");
+        if (d.demoBærende) picks.push("bærende");
+        if (d.demoIndvendig) picks.push("indvendig");
+        price += extrasTotal(pricing?.extras?.["demolition"], 1, picks, "demolition:extras");
         break;
       }
       case "heating": {
-        price += it.system === "fjernvarme" ? 12000 : 8000;
+        const picks = [it.system];
+        price += extrasTotal(pricing?.extras?.["heating"], 1, picks, "heating:extras");
         break;
       }
       case "el": {
         const e = it as Extract<AnyItem, { typeId: "el" }>;
-        // Electrician pricing (ark-drevet):
-        // - Startpris: fra JSON (elektriker.startpris)
-        // - Stik: 1.000 kr pr. stk ("stikCount")
-        // - Ny tavle og øvrige tilvalg via JSON extras (uden m²-skalering)
         const elRow = pricing?.base?.["elektriker"];
-        price += Math.max(0, Math.round(elRow?.startpris ?? 20000));
+        price += Math.max(0, Math.round(elRow?.startpris ?? 0));
         const sticks = Math.max(0, Number(e.stikCount ?? 0));
-        price += 1000 * sticks;
-        // Extras via JSON (area-independent)
         const picks: string[] = [];
+        if (sticks > 0) picks.push("stik");
         if (e.newPanel) picks.push("ny", "tavle");
         if (e.evCharger) picks.push("bil", "lader");
         if (e.hiddenRuns) picks.push("skjulte", "føringer");
         if (picks.length) {
-          // Fast beløb for valgte tilvalg – ignorer per m²-linjer for elektriker
-          const list = pricing?.extras?.["elektriker"] || [];
-          const norm = (s: string) =>
-            String(s || "")
-              .toLowerCase()
-              .normalize("NFD")
-              .replace(/\p{Diacritic}/gu, "")
-              .replace(/\s+/g, "")
-              .replace(/[^a-z0-9_.-]/g, "");
-          const picksNorm = picks.map(norm);
-          let add = 0;
-          for (const e of list) {
-            if (e.kind !== "fixed") continue;
-            const en = norm(e.name);
-            if (!picksNorm.some((p) => en.includes(p) || p.includes(en)))
-              continue;
-            add += Math.round(e.amount || 0);
-          }
-          price += add;
+          price = extrasTotal(
+            pricing?.extras?.["elektriker"],
+            1,
+            picks,
+            "elektriker:extras",
+            sticks,
+            undefined,
+            price
+          );
         }
         break;
       }
       case "køkken": {
         const k = it as Extract<AnyItem, { typeId: "køkken" }>;
-        // Kitchen pricing: (startpris × faktor) + (m2pris × AREA)
         const qIdx = (k.quality ?? 2) as number;
         const row = pricing?.base?.["køkken"];
         const faktor = interpFaktor(qIdx, row);
         const start = (row?.startpris ?? 0) * (faktor || 1);
         const areaPart = (row?.m2pris ?? 0) * AREA;
         let base = Math.max(0, Math.round(start + areaPart));
-        if (k.placement === "new") {
-          base += extrasTotal(
-            pricing?.extras?.["køkken"],
-            1,
-            ["placering"],
-            "køkken:ny placering"
-          );
+        const picks: string[] = [];
+        if (k.placement === "new") picks.push("placering");
+        if (picks.length) {
+          base = extrasTotal(pricing?.extras?.["køkken"], 1, picks, "køkken:extras", 1, undefined, base);
         }
         price += base;
         break;
@@ -727,18 +666,21 @@ export default function RenovationWithList() {
 
   // No more "Fra" prices on cards
 
-  const calcItemAdjusted = (base: number) =>
-    Math.max(0, Math.round(base * autoFactor));
+  const finalizePrice = (subtotal: number): number => {
+    let t = subtotal;
+    // Apply global (basement/firstFloor already applied per-item in subtotal above)
+    // Apply postnummer factor
+    const postnr = Number(meta?.postcode || 0) || undefined;
+    t = applyPostnr(t, postnr, pricing?.postnrFaktorer || []);
+    // Apply escalation from global
+    t = applyEscalation(t, pricing?.global?.escalation);
+    return Math.max(0, Math.round(t));
+  };
 
-  const sumAdjusted = useMemo(
-    () =>
-      items.reduce(
-        (acc, it) => acc + calcItemAdjusted(calcItemBasePrice(it)),
-        0
-      ),
+  const sumAdjusted = useMemo(() => {
+    return items.reduce((acc, it) => acc + finalizePrice(calcItemSubtotal(it)), 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [items, autoFactor, meta]
-  );
+  }, [items, meta, pricing]);
 
   // smartRound & formatKr importeret
 
@@ -1186,8 +1128,10 @@ export default function RenovationWithList() {
                   </span>
                 </div>
                 {items.map((it) => {
-                  const itemBase = calcItemBasePrice(it);
-                  const itemAdj = calcItemAdjusted(itemBase);
+                  // Subtotal = base + extras (+ relevant storey multipliers)
+                  const itemBase = calcItemSubtotal(it);
+                  // Finalize = apply postnr factor and escalation
+                  const itemAdj = finalizePrice(itemBase);
 
                   return (
                     <div

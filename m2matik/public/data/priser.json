@@ -5,70 +5,96 @@
       "m2pris": 1400,
       "faktorLav": 0.6,
       "faktorNormal": 1,
-      "faktorHøj": 1.4
+      "faktorHøj": 1.4,
+      "beregning": "faktor_pa_m2_og_start"
     },
     "stuk": {
       "startpris": 0,
       "m2pris": 300,
       "faktorLav": 0.5,
       "faktorNormal": 1,
-      "faktorHøj": 1.4
+      "faktorHøj": 1.4,
+      "beregning": "faktor_pa_m2_og_start"
     },
     "højePaneler": {
       "startpris": 0,
       "m2pris": 300,
       "faktorLav": 0.5,
       "faktorNormal": 1,
-      "faktorHøj": 1.4
+      "faktorHøj": 1.4,
+      "beregning": "faktor_pa_m2_og_start"
     },
     "badeværelse": {
       "startpris": 250000,
       "m2pris": 100,
       "faktorLav": 0.8,
       "faktorNormal": 1,
-      "faktorHøj": 1.2
+      "faktorHøj": 1.2,
+      "beregning": "kun_start_med_faktor"
+    },
+    "toilet": {
+      "startpris": 100000,
+      "m2pris": 400,
+      "faktorLav": 0.8,
+      "faktorNormal": 1,
+      "faktorHøj": 1.2,
+      "beregning": "kun_start_med_faktor"
     },
     "køkken": {
       "startpris": 300000,
       "m2pris": 1500,
       "faktorLav": 0.3,
       "faktorNormal": 1,
-      "faktorHøj": 2
+      "faktorHøj": 2,
+      "beregning": "faktor_kun_pa_start"
     },
     "elektriker": {
       "startpris": 20000,
       "m2pris": 1000,
       "faktorLav": 1,
       "faktorNormal": 1,
-      "faktorHøj": 1
+      "faktorHøj": 1,
+      "beregning": "faktor_pa_m2_og_start"
     },
     "døreOgVinduer": {
       "startpris": 0,
       "m2pris": 20000,
       "faktorLav": 0.8,
       "faktorNormal": 1,
-      "faktorHøj": 2
+      "faktorHøj": 2,
+      "beregning": "faktor_pa_m2_og_start"
     },
     "tag": {
       "startpris": 30000,
       "m2pris": 2500,
       "faktorLav": 0.7,
       "faktorNormal": 1,
-      "faktorHøj": 2
+      "faktorHøj": 2,
+      "beregning": "faktor_pa_m2_og_start"
     },
     "terrasse": {
       "startpris": 10000,
       "m2pris": 3000,
       "faktorLav": 0.6,
       "faktorNormal": 1,
-      "faktorHøj": 1.4
+      "faktorHøj": 1.4,
+      "beregning": "faktor_pa_m2_og_start"
     },
     "gulv": {
       "startpris": 10000,
       "m2pris": 1000,
       "faktorLav": 0.4,
       "faktorNormal": 1,
-      "faktorHøj": 2
+      "faktorHøj": 2,
+      "beregning": "faktor_pa_m2_og_start"
+    },
+    "walls": {
+      "startpris": 0,
+      "m2pris": 7000,
+      "faktorLav": 1,
+      "faktorNormal": 1,
+      "faktorHøj": 1,
+      "beregning": "kun_m2"
     }
   },
   "extras": {
@@ -89,6 +115,11 @@
         "name": "ny placering bad",
         "kind": "fixed",
         "amount": 25000
+      },
+      {
+        "name": "bruseniche",
+        "kind": "fixed",
+        "amount": 20000
       }
     ],
     "elektriker": [
@@ -101,6 +132,11 @@
         "name": "ny tavle (pr. m²)",
         "kind": "per_m2",
         "amount": 300
+      },
+      {
+        "name": "stik",
+        "kind": "per_unit",
+        "amount": 1000
       }
     ],
     "døre og vinduer": [
@@ -115,7 +151,188 @@
         "name": "tilvalg trappe",
         "kind": "fixed",
         "amount": 20000
+      },
+      {
+        "name": "hævet",
+        "kind": "factor",
+        "amount": 1.5
+      },
+      {
+        "name": "værn",
+        "kind": "factor",
+        "amount": 1.2
+      }
+    ],
+    "facade": [
+      {
+        "name": "male",
+        "kind": "per_m2",
+        "amount": 250
+      },
+      {
+        "name": "pudse",
+        "kind": "per_m2",
+        "amount": 200
+      },
+      {
+        "name": "træ",
+        "kind": "per_m2",
+        "amount": 300
+      },
+      {
+        "name": "efterisolering",
+        "kind": "per_m2",
+        "amount": 200
+      }
+    ],
+    "walls": [
+      {
+        "name": "nyLet",
+        "kind": "fixed",
+        "amount": 9000
+      },
+      {
+        "name": "nyBærende",
+        "kind": "fixed",
+        "amount": 18000
+      }
+    ],
+    "demolition": [
+      {
+        "name": "let",
+        "kind": "fixed",
+        "amount": 7000
+      },
+      {
+        "name": "bærende",
+        "kind": "fixed",
+        "amount": 15000
+      },
+      {
+        "name": "indvendig",
+        "kind": "fixed",
+        "amount": 6000
+      }
+    ],
+    "heating": [
+      {
+        "name": "fjernvarme",
+        "kind": "fixed",
+        "amount": 12000
+      },
+      {
+        "name": "radiator",
+        "kind": "fixed",
+        "amount": 8000
+      }
+    ],
+    "gulv": [
+      {
+        "name": "gulvvarme",
+        "kind": "per_m2",
+        "amount": 500
+      }
+    ],
+    "tag": [
+      {
+        "name": "saddeltag",
+        "kind": "factor",
+        "amount": 1.2
+      },
+      {
+        "name": "valm",
+        "kind": "factor",
+        "amount": 1.2
+      },
+      {
+        "name": "roofSlope",
+        "kind": "factor_fn",
+        "fn": "roofSlopeLinear",
+        "params": {
+          "minDeg": 0,
+          "maxDeg": 45,
+          "min": 1,
+          "max": 2
+        }
       }
     ]
+  },
+  "postnrFaktorer": [
+    {
+      "from": 1000,
+      "to": 1473,
+      "factor": 1.15,
+      "note": ""
+    },
+    {
+      "from": 1500,
+      "to": 1999,
+      "factor": 1.1,
+      "note": ""
+    },
+    {
+      "from": 2000,
+      "to": 2200,
+      "factor": 1.1,
+      "note": ""
+    },
+    {
+      "from": 2201,
+      "to": 2990,
+      "factor": 1.05,
+      "note": ""
+    },
+    {
+      "from": 3000,
+      "to": 3670,
+      "factor": 1,
+      "note": ""
+    },
+    {
+      "from": 3700,
+      "to": 3790,
+      "factor": 0.8,
+      "note": ""
+    },
+    {
+      "from": 3900,
+      "to": 3992,
+      "factor": 1,
+      "note": ""
+    },
+    {
+      "from": 4000,
+      "to": 4990,
+      "factor": 0.8,
+      "note": ""
+    },
+    {
+      "from": 5000,
+      "to": 5100,
+      "factor": 1,
+      "note": ""
+    },
+    {
+      "from": 5000,
+      "to": 5985,
+      "factor": 0.8,
+      "note": ""
+    },
+    {
+      "from": 6000,
+      "to": 9900,
+      "factor": 0.7,
+      "note": ""
+    }
+  ],
+  "global": {
+    "multipliers": {
+      "basement": 1.2,
+      "firstFloor": 1.1
+    },
+    "escalation": {
+      "baseDate": "2025-01-01",
+      "percentPerYear": 0.03
+    }
   }
 }
