@@ -61,6 +61,8 @@ export type ItemDøreVinduer = ItemBase & {
 export type ItemTerrasse = ItemBase & {
   typeId: "terrasse";
   area: number;
+  // 5-trins kvalitet (Budget..Eksklusiv)
+  terraceQuality?: 0 | 1 | 2 | 3 | 4;
   extra: { hævet?: boolean; trappe?: boolean; værn?: boolean };
 };
 

@@ -66,9 +66,9 @@ export const DoorWindowEditor: React.FC<Props> = ({ item, update }) => {
             const q = Math.max(0, Math.min(4, item.quality ?? 2));
             const name = [
               "Budget",
-              "Basis",
               "Standard",
-              "Premium",
+              "Standard",
+              "Standard",
               "Eksklusiv",
             ][q];
             return (
@@ -90,9 +90,7 @@ export const DoorWindowEditor: React.FC<Props> = ({ item, update }) => {
           />
           <div className="mt-1 hidden sm:flex text-[11px] text-gray-500 select-none justify-between px-0.5">
             <span>Budget</span>
-            <span>Basis</span>
-            <span>Standard</span>
-            <span>Premium</span>
+            <span className="mx-auto">Standard</span>
             <span>Eksklusiv</span>
           </div>
         </div>

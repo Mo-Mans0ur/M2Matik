@@ -8,7 +8,7 @@ interface Props {
 }
 export const ElectricityEditor: React.FC<Props> = ({ item, update }) => (
   <div className="space-y-3">
-    <label className="block text-sm text-gray-600 flex items-center gap-2">
+    <label className="text-sm text-gray-600 flex items-center gap-2">
       <span>Antal afbrydere + udtag: {item.outletCount}</span>
       <InfoTooltip text="Et udtag er et tilslutningspunkt i væg/loft til fx lampe eller stikkontakt." />
     </label>
@@ -23,7 +23,7 @@ export const ElectricityEditor: React.FC<Props> = ({ item, update }) => (
       className="w-full accent-blue-500 h-2 rounded-lg appearance-none cursor-pointer"
     />
     <label className="block text-sm text-gray-600">
-      Antal stik: {(item as any).stikCount ?? 0}
+      Antal stik: {item.stikCount ?? 0}
     </label>
     <input
       title="Antal stik"
@@ -31,7 +31,7 @@ export const ElectricityEditor: React.FC<Props> = ({ item, update }) => (
       min={0}
       max={50}
       step={1}
-      value={(item as any).stikCount ?? 0}
+      value={item.stikCount ?? 0}
       onChange={(e) => update("stikCount", parseInt(e.target.value, 10))}
       className="w-full accent-blue-500 h-2 rounded-lg appearance-none cursor-pointer"
     />

@@ -32,7 +32,13 @@ export const KitchenEditor: React.FC<Props> = ({ item, update }) => (
     <div className="space-y-1">
       {(() => {
         const q = Math.max(0, Math.min(4, item.quality ?? 2));
-        const name = ["Budget", "Basis", "Standard", "Premium", "Eksklusiv"][q];
+        const name = [
+          "Budget",
+          "Standard",
+          "Standard",
+          "Standard",
+          "Eksklusiv",
+        ][q];
         return (
           <label className="block text-sm text-gray-600">
             Kvalitet ({name})
@@ -52,9 +58,7 @@ export const KitchenEditor: React.FC<Props> = ({ item, update }) => (
       />
       <div className="mt-1 hidden sm:flex text-[11px] text-gray-500 select-none justify-between px-0.5">
         <span>Budget</span>
-        <span>Basis</span>
-        <span>Standard</span>
-        <span>Premium</span>
+        <span className="mx-auto">Standard</span>
         <span>Eksklusiv</span>
       </div>
     </div>

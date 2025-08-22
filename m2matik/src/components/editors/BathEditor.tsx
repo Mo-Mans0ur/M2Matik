@@ -19,7 +19,7 @@ export const BathEditor: React.FC<Props> = ({ item, update }) => (
             type="radio"
             name={`bathKind_${item.uid}`}
             value={opt.key}
-            checked={(item as any).roomKind === opt.key}
+            checked={item.roomKind === opt.key}
             onChange={() => update("roomKind", opt.key)}
             className="w-4 h-4 accent-blue-500"
           />
@@ -51,7 +51,9 @@ export const BathEditor: React.FC<Props> = ({ item, update }) => (
     <div className="h-px bg-gray-200 my-2" />
     {(() => {
       const q = Math.max(0, Math.min(4, item.bathQuality ?? 2));
-      const qName = ["Budget", "Basis", "Standard", "Premium", "Eksklusiv"][q];
+      const qName = ["Budget", "Standard", "Standard", "Standard", "Eksklusiv"][
+        q
+      ];
       return (
         <label className="block text-sm text-gray-600">
           Kvalitet ({qName})
@@ -70,20 +72,18 @@ export const BathEditor: React.FC<Props> = ({ item, update }) => (
     />
     <div className="mt-1 hidden sm:flex text-[11px] text-gray-500 select-none justify-between px-0.5">
       <span>Budget</span>
-      <span>Basis</span>
-      <span>Standard</span>
-      <span>Premium</span>
+      <span className="mx-auto">Standard</span>
       <span>Eksklusiv</span>
     </div>
     <label className="block text-sm text-gray-600">
-      Størrelse: {Math.max(2, Math.min(12, (item as any).sizeM2 ?? 6))} m²
+      Størrelse: {Math.max(2, Math.min(12, item.sizeM2 ?? 6))} m²
     </label>
     <input
       type="range"
       min={2}
       max={12}
       step={1}
-      value={(item as any).sizeM2 ?? 6}
+      value={item.sizeM2 ?? 6}
       onChange={(e) => update("sizeM2", parseInt(e.target.value, 10))}
       className="w-full accent-blue-500 h-2 rounded-lg appearance-none cursor-pointer"
       aria-label="Størrelse i m2"
@@ -94,10 +94,10 @@ export const BathEditor: React.FC<Props> = ({ item, update }) => (
         <input
           type="checkbox"
           className="w-4 h-4 accent-blue-500"
-          checked={!!(item as any).addons?.bruseniche}
+          checked={!!item.addons?.bruseniche}
           onChange={(e) =>
             update("addons", {
-              ...(item as any).addons,
+              ...(item.addons || {}),
               bruseniche: e.target.checked,
             })
           }
@@ -108,10 +108,10 @@ export const BathEditor: React.FC<Props> = ({ item, update }) => (
         <input
           type="checkbox"
           className="w-4 h-4 accent-blue-500"
-          checked={!!(item as any).addons?.badekar}
+          checked={!!item.addons?.badekar}
           onChange={(e) =>
             update("addons", {
-              ...(item as any).addons,
+              ...(item.addons || {}),
               badekar: e.target.checked,
             })
           }

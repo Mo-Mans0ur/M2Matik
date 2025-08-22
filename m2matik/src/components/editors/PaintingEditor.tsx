@@ -8,9 +8,13 @@ interface Props {
 
 export const PaintingEditor: React.FC<Props> = ({ item, update }) => {
   const q = Math.max(0, Math.min(4, item.paintQuality ?? 2));
-  const qualityName = ["Budget", "Basis", "Standard", "Premium", "Eksklusiv"][
-    q
-  ];
+  const qualityName = [
+    "Budget",
+    "Standard",
+    "Standard",
+    "Standard",
+    "Eksklusiv",
+  ][q];
   return (
     <div className="space-y-2">
       <label className="block text-sm text-gray-600">
@@ -46,11 +50,21 @@ export const PaintingEditor: React.FC<Props> = ({ item, update }) => {
       />
       <div className="mt-1 hidden sm:flex text-[11px] text-gray-500 select-none justify-between px-0.5">
         <span>Budget</span>
-        <span>Basis</span>
-        <span>Standard</span>
-        <span>Premium</span>
+        <span className="mx-auto">Standard</span>
         <span>Eksklusiv</span>
       </div>
+      {q === 0 && (
+        <p className="text-xs text-gray-600 mt-1">
+          Budget er simpel afvaskning og 1 malerbehandling, hvorfor gamle
+          spartelhuller mv. vil være synlige.
+        </p>
+      )}
+      {q === 4 && (
+        <p className="text-xs text-gray-600 mt-1">
+          Eksklusiv vil typisk indebære nedtagning af eksisterende filt/tapet,
+          fuldspartling, filt, grunding og malerbehandling.
+        </p>
+      )}
       <div className="flex flex-wrap gap-4 text-sm">
         {(
           [

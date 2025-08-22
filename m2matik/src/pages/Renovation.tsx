@@ -28,6 +28,7 @@ import InfoTooltip from "../components/InfoTooltip";
 import { loadProjectMeta, saveProjectMeta } from "../lib/storage";
 import type { ProjectMeta } from "../lib/storage";
 import type { AnyItem, ItemDøreVinduer } from "./renovationTypes";
+import novaPoint from "../assets/pictures/nova_point.png";
 import {
   BASE_DATE,
   ANNUAL_ADJUSTMENT,
@@ -54,8 +55,7 @@ export default function RenovationWithList() {
   // Lokal kopi når man redigerer
   const [draftMeta, setDraftMeta] = useState<ProjectMeta | null>(null);
 
-  // Manuel prisjustering i %
-  const [manualAdjustment, setManualAdjustment] = useState(0);
+  // Manuel prisjustering (fjernet)
 
   // Projekt liste med individuelle poster
   const [items, setItems] = useState<AnyItem[]>([]);
@@ -183,13 +183,11 @@ export default function RenovationWithList() {
     },
   ] as const;
 
-  // Auto + manuel prisjustering
+  // Auto prisjustering
   const yearsSinceBase = () =>
     (new Date().getTime() - BASE_DATE.getTime()) / (1000 * 60 * 60 * 24 * 365);
 
   const autoFactor = Math.pow(1 + ANNUAL_ADJUSTMENT, yearsSinceBase());
-  const manualFactor =
-    1 + (isNaN(manualAdjustment) ? 0 : manualAdjustment) / 100;
 
   // Tilføj en ny post ud fra kortvalg
   const addItem = (typeId: AnyItem["typeId"]) => {
@@ -231,7 +229,7 @@ export default function RenovationWithList() {
       case "døreOgVinduer":
         item = {
           uid: newUID(),
-          typeId,
+          typeId: "døreOgVinduer",
           label,
           choice: "door",
           operation: "replacement",
@@ -239,21 +237,22 @@ export default function RenovationWithList() {
           count: 1,
           quality: 2,
           sizeScale: 50,
-        } as any;
+        };
         break;
       case "terrasse":
         item = {
           uid: newUID(),
-          typeId,
+          typeId: "terrasse",
           label,
           area: 0,
+          terraceQuality: 2,
           extra: {},
-        } as any;
+        };
         break;
       case "roof":
         item = {
           uid: newUID(),
-          typeId,
+          typeId: "roof",
           label,
           roofPitch: 0,
           roofQuality: 2,
@@ -264,67 +263,64 @@ export default function RenovationWithList() {
             efterisolering: false,
             kviste: 0,
           },
-        } as any;
+        };
         break;
       case "Facade":
         item = {
           uid: newUID(),
-          typeId,
+          typeId: "Facade",
           label,
           finish: "male",
           afterIso: false,
-        } as any;
+        };
         break;
       case "walls":
         item = {
           uid: newUID(),
-          typeId,
+          typeId: "walls",
           label,
-          demoLet: false,
-          demoBærende: false,
-          demoIndvendig: false,
           nyLet: false,
           nyBærende: false,
-        } as any;
+        };
         break;
       case "demolition":
         item = {
           uid: newUID(),
-          typeId,
+          typeId: "demolition",
           label,
           demoLet: false,
           demoBærende: false,
           demoIndvendig: false,
-        } as any;
+        };
         break;
       case "heating":
         item = {
           uid: newUID(),
-          typeId,
+          typeId: "heating",
           label,
           system: "radiator",
-        } as any;
+        };
         break;
       case "el":
         item = {
           uid: newUID(),
-          typeId,
+          typeId: "el",
           label,
           outletCount: 0,
           stikCount: 0,
           newPanel: false,
           hiddenRuns: false,
           evCharger: false,
-        } as any;
+        };
         break;
       case "køkken":
         item = {
           uid: newUID(),
-          typeId,
+          typeId: "køkken",
           label,
           placement: "same",
           quality: 2,
-        } as any;
+        };
         break;
       default:
         return;
@@ -351,6 +347,7 @@ export default function RenovationWithList() {
     const firstFloorFactor = meta?.firstFloor ? 1.1 : 1;
 
     let price = 0;
+    let applyStoreyFactors = true; // disable for exterior where not relevant
 
     // 5-step quality factor helper: index 0..4 → [lav..1..høj]
     const fiveStepFactor = (idx: number, lav: number, høj: number) => {
@@ -393,11 +390,12 @@ export default function RenovationWithList() {
 
     switch (it.typeId) {
       case "maling": {
+        const m = it as Extract<AnyItem, { typeId: "maling" }>;
         // Base scaled by coverage and quality (from priser.json)
         const coverage =
-          Math.max(0, Math.min(100, (it as any).coveragePercent ?? 100)) / 100;
+          Math.max(0, Math.min(100, m.coveragePercent ?? 100)) / 100;
         const areaCovered = AREA * coverage;
-        const qIdx = (it.paintQuality ?? 2) as number;
+        const qIdx = (m.paintQuality ?? 2) as number;
         const malRow = pricing?.base?.["maling"];
         price += baseWith(malRow, areaCovered, interpFaktor(qIdx, malRow));
 
@@ -407,7 +405,7 @@ export default function RenovationWithList() {
           interpFaktor(idx, row);
 
         // Træværk: add as additive extra if selected (fixed and/or per m² lines in JSON)
-        if ((it as any).extras?.["træværk"]) {
+        if (m.extras?.["træværk"]) {
           const addTv = extrasTotal(
             pricing?.extras?.["maling"],
             areaCovered,
@@ -417,7 +415,7 @@ export default function RenovationWithList() {
           price += addTv;
         }
 
-        if (it.extras?.paneler) {
+        if (m.extras?.paneler) {
           const row = pricing?.base?.["højePaneler"];
           if (row) {
             price += baseWith(row, AREA, qFactorFrom(qIdx, row));
@@ -432,7 +430,7 @@ export default function RenovationWithList() {
             price += add;
           }
         }
-        if (it.extras?.stuk) {
+        if (m.extras?.stuk) {
           const row = pricing?.base?.["stuk"];
           if (row) {
             price += baseWith(row, AREA, qFactorFrom(qIdx, row));
@@ -464,16 +462,17 @@ export default function RenovationWithList() {
         break;
       }
       case "bad": {
+        const b = it as Extract<AnyItem, { typeId: "bad" }>;
         // Base from priser.json using exact formula
-        const qIdx = (it as any).bathQuality ?? 2;
+        const qIdx = b.bathQuality ?? 2;
         const row = pricing?.base?.["badeværelse"];
-        const sz = Math.max(2, Math.min(12, (it as any).sizeM2 ?? 6));
-        const n = Math.max(1, Math.min(5, (it as any).count ?? 1));
+        const sz = Math.max(2, Math.min(12, b.sizeM2 ?? 6));
+        const n = Math.max(1, Math.min(5, b.count ?? 1));
         // Apply faktor to the whole base (startpris + m²-delen)
         const faktor = interpFaktor(qIdx, row);
         const baseUnfactored = baseWith(row, sz, 1);
         let base = Math.round(baseUnfactored * faktor) * n;
-        if (it.bathPlacement === "new") {
+        if (b.bathPlacement === "new") {
           // Ny placering tillæg per rum
           base +=
             extrasTotal(
@@ -510,7 +509,7 @@ export default function RenovationWithList() {
           if (legacyVariant === "newDoor") newInstall = "door";
           if (legacyVariant === "newWindow") newInstall = "window";
         }
-        const qIdx = ((it as any).quality ?? 2) as number;
+        const qIdx = (doorWin.quality ?? 2) as number;
         const cnt = Math.max(0, doorWin.count || 0);
         const row = pricing?.base?.["døreOgVinduer"];
         let unit = baseWith(row, 1, interpFaktor(qIdx, row));
@@ -526,26 +525,35 @@ export default function RenovationWithList() {
         break;
       }
       case "terrasse": {
-        // Excel-only base; apply specified extras:
-        // - kvalitetsfaktor (lav/høj) is ignored here (no UI), so we use 'normal'
-        // - hævet: multiplicative factor ×1.5
-        // - værn: multiplicative factor ×1.2
-        // - trappe: fixed (fra JSON)
-        const areaM2 = Math.max(0, it.area);
-        let base = baseTotal(
-          pricing?.base?.["terrasse"],
-          areaM2,
-          "normal",
-          "terrasse"
-        );
+        const t = it as Extract<AnyItem, { typeId: "terrasse" }>;
+        // Terrasse: 5-trins kvalitetsfaktor + multiplicative/additive extras
+        const areaM2 = Math.max(0, t.area);
+        const qIdx = (t.terraceQuality ?? 2) as number;
+        const row = pricing?.base?.["terrasse"];
+        // Use same 5-step interpolation approach as other categories
+        let base = ((): number => {
+          if (row) {
+            return Math.max(
+              0,
+              Math.round(
+                (row.startpris || 0) +
+                  Math.max(0, areaM2) *
+                    (row.m2pris || 0) *
+                    interpFaktor(qIdx, row)
+              )
+            );
+          }
+          // fallback via helper
+          return baseTotal(row, areaM2, "normal", "terrasse");
+        })();
         // Apply multiplicative factors for hævet/værn
         let mult = 1;
-        if (it.extra?.hævet) mult *= 1.5;
-        if (it.extra?.værn) mult *= 1.2;
+        if (t.extra?.hævet) mult *= 1.5;
+        if (t.extra?.værn) mult *= 1.2;
         base = Math.round(base * mult);
         // Add additive extras (e.g., trappe) from JSON if present
         const picks: string[] = [];
-        if (it.extra?.trappe) picks.push("trappe");
+        if (t.extra?.trappe) picks.push("trappe");
         const add = extrasTotal(
           pricing?.extras?.["terrasse"],
           areaM2,
@@ -556,9 +564,11 @@ export default function RenovationWithList() {
         break;
       }
       case "roof": {
+        applyStoreyFactors = false;
         // Roof pricing using five-step interpoleret faktor (lav..høj) and JSON extras
-        const qIdx = ((it as any).roofQuality ?? 2) as number;
-        const toggles = (it as any).extras || {};
+        const r = it as Extract<AnyItem, { typeId: "roof" }>;
+        const qIdx = (r.roofQuality ?? 2) as number;
+        const toggles = r.extras || {};
         const tagRow = pricing?.base?.["tag"];
         let base = baseWith(tagRow, AREA, interpFaktor(qIdx, tagRow));
         // Additive extras (fixed/per m²)
@@ -584,15 +594,19 @@ export default function RenovationWithList() {
         const dormers = Number(toggles.kviste || 0);
         if (dormers > 0) {
           const list = pricing?.extras?.["tag"] || [];
+          let perPiece = 0;
           for (const e of list) {
             const name = String(e.name).toLowerCase();
             if (
               (name.includes("kvist") || name.includes("kviste")) &&
               e.kind === "fixed"
             ) {
-              base += Math.round(e.amount * dormers);
+              perPiece = Math.max(perPiece, Math.round(e.amount));
             }
           }
+          // Fallback if ikke fundet i JSON: 80.000 kr pr. kvist (fra Excel)
+          if (perPiece <= 0) perPiece = 80000;
+          base += perPiece * dormers;
         }
         // Multiplicative factors for tagtype (saddeltag/valm) if selected
         let mult = 1;
@@ -600,7 +614,7 @@ export default function RenovationWithList() {
         if (toggles.valm) mult *= 1.2;
         base = Math.round(base * mult);
         // Pitch factor: 0° -> 1.0, 45° -> 2.0 (linear)
-        const pitch = Math.max(0, Math.min(45, (it as any).roofPitch || 0));
+        const pitch = Math.max(0, Math.min(45, r.roofPitch || 0));
         const pitchFactor = 1 + (pitch / 45) * (2 - 1);
         price += Math.round(base * pitchFactor);
         break;
@@ -614,16 +628,18 @@ export default function RenovationWithList() {
         break;
       }
       case "walls": {
+        const w = it as Extract<AnyItem, { typeId: "walls" }>;
         // Nye vægge
-        if ((it as any).nyLet) price += 9000;
-        if ((it as any).nyBærende) price += 18000;
+        if (w.nyLet) price += 9000;
+        if (w.nyBærende) price += 18000;
         if (price === 0) price += perM2.walls; // baseline badge/fallback
         break;
       }
       case "demolition": {
-        if ((it as any).demoLet) price += 7000;
-        if ((it as any).demoBærende) price += 15000;
-        if ((it as any).demoIndvendig) price += 6000;
+        const d = it as Extract<AnyItem, { typeId: "demolition" }>;
+        if (d.demoLet) price += 7000;
+        if (d.demoBærende) price += 15000;
+        if (d.demoIndvendig) price += 6000;
         if (price === 0) price += 0; // no baseline
         break;
       }
@@ -632,38 +648,53 @@ export default function RenovationWithList() {
         break;
       }
       case "el": {
-        // Electrician pricing:
-        // - Startpris: 20.000 kr
+        const e = it as Extract<AnyItem, { typeId: "el" }>;
+        // Electrician pricing (ark-drevet):
+        // - Startpris: fra JSON (elektriker.startpris)
         // - Stik: 1.000 kr pr. stk ("stikCount")
-        // - Ny tavle: 30.000 kr (fast)
-        // - Øvrige tilvalg (fx bil lader, skjulte føringer) via JSON extras
-        price += 20000;
-        const sticks = Math.max(0, Number((it as any).stikCount ?? 0));
+        // - Ny tavle og øvrige tilvalg via JSON extras (uden m²-skalering)
+        const elRow = pricing?.base?.["elektriker"];
+        price += Math.max(0, Math.round(elRow?.startpris ?? 20000));
+        const sticks = Math.max(0, Number(e.stikCount ?? 0));
         price += 1000 * sticks;
-        if (it.newPanel) price += 30000;
-        // Keep other extras from JSON (exclude tavle to avoid double counting)
+        // Extras via JSON (area-independent)
         const picks: string[] = [];
-        if ((it as any).evCharger) picks.push("bil", "lader");
-        if (it.hiddenRuns) picks.push("skjulte", "føringer");
+        if (e.newPanel) picks.push("ny", "tavle");
+        if (e.evCharger) picks.push("bil", "lader");
+        if (e.hiddenRuns) picks.push("skjulte", "føringer");
         if (picks.length) {
-          price += extrasTotal(
-            pricing?.extras?.["elektriker"],
-            AREA,
-            picks,
-            "elektriker:extras"
-          );
+          // Fast beløb for valgte tilvalg – ignorer per m²-linjer for elektriker
+          const list = pricing?.extras?.["elektriker"] || [];
+          const norm = (s: string) =>
+            String(s || "")
+              .toLowerCase()
+              .normalize("NFD")
+              .replace(/\p{Diacritic}/gu, "")
+              .replace(/\s+/g, "")
+              .replace(/[^a-z0-9_.-]/g, "");
+          const picksNorm = picks.map(norm);
+          let add = 0;
+          for (const e of list) {
+            if (e.kind !== "fixed") continue;
+            const en = norm(e.name);
+            if (!picksNorm.some((p) => en.includes(p) || p.includes(en)))
+              continue;
+            add += Math.round(e.amount || 0);
+          }
+          price += add;
         }
         break;
       }
       case "køkken": {
+        const k = it as Extract<AnyItem, { typeId: "køkken" }>;
         // Kitchen pricing: (startpris × faktor) + (m2pris × AREA)
-        const qIdx = ((it as any).quality ?? 2) as number;
+        const qIdx = (k.quality ?? 2) as number;
         const row = pricing?.base?.["køkken"];
         const faktor = interpFaktor(qIdx, row);
         const start = (row?.startpris ?? 0) * (faktor || 1);
         const areaPart = (row?.m2pris ?? 0) * AREA;
         let base = Math.max(0, Math.round(start + areaPart));
-        if (it.placement === "new") {
+        if (k.placement === "new") {
           base += extrasTotal(
             pricing?.extras?.["køkken"],
             1,
@@ -676,7 +707,9 @@ export default function RenovationWithList() {
       }
     }
 
-    price = Math.round(price * basementFactor * firstFloorFactor);
+    if (applyStoreyFactors) {
+      price = Math.round(price * basementFactor * firstFloorFactor);
+    }
     return Math.max(0, price);
   };
 
@@ -695,7 +728,7 @@ export default function RenovationWithList() {
   // No more "Fra" prices on cards
 
   const calcItemAdjusted = (base: number) =>
-    Math.max(0, Math.round(base * autoFactor * manualFactor));
+    Math.max(0, Math.round(base * autoFactor));
 
   const sumAdjusted = useMemo(
     () =>
@@ -704,7 +737,7 @@ export default function RenovationWithList() {
         0
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [items, autoFactor, manualFactor, meta]
+    [items, autoFactor, meta]
   );
 
   // smartRound & formatKr importeret
@@ -1013,7 +1046,7 @@ export default function RenovationWithList() {
                     return (
                       <div
                         key={opt.id}
-                        className={`relative group bg-white rounded-lg border shadow-sm hover:shadow transition-all cursor-pointer active:bg-blue-50 active:ring-1 active:ring-blue-300/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 active:scale-[.985] overflow-hidden ${
+                        className={`relative group bg-white rounded-lg border shadow-sm hover:shadow transition-all cursor-pointer active:bg-blue-50 active:ring-1 active:ring-blue-300/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 active:scale-[.985] overflow-visible ${
                           count ? "border-blue-400" : "border-gray-200"
                         }`}
                         onClick={() => addItem(opt.id as AnyItem["typeId"])}
@@ -1068,7 +1101,7 @@ export default function RenovationWithList() {
                       return (
                         <div
                           key={opt.id}
-                          className={`relative group bg-white rounded-lg border shadow-sm hover:shadow transition-all cursor-pointer active:bg-blue-50 active:ring-1 active:ring-blue-300/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 active:scale-[.985] overflow-hidden border-blue-400`}
+                          className={`relative group bg-white rounded-lg border shadow-sm hover:shadow transition-all cursor-pointer active:bg-blue-50 active:ring-1 active:ring-blue-300/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 active:scale-[.985] overflow-visible border-blue-400`}
                           onClick={() => addItem(opt.id as AnyItem["typeId"])}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
@@ -1189,9 +1222,6 @@ export default function RenovationWithList() {
                           </span>
                         </div>
                         <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
-                          <span className="text-[10px] sm:text-xs text-gray-500">
-                            Før justering: {formatKr(itemBase)}
-                          </span>
                           <span className="text-xs sm:text-sm font-semibold">
                             {formatKr(Math.round(itemAdj))}
                           </span>
@@ -1294,21 +1324,7 @@ export default function RenovationWithList() {
               </span>
             </div>
 
-            {/* Manuel justering */}
-            <div className="mt-4">
-              <label className="text-[11px] sm:text-xs text-gray-600 flex items-center gap-2">
-                Manuel prisjustering (%)
-                <input
-                  type="number"
-                  value={manualAdjustment}
-                  onChange={(e) =>
-                    setManualAdjustment(parseInt(e.target.value) || 0)
-                  }
-                  className="w-24 text-center border rounded p-1 text-xs sm:text-sm"
-                  placeholder="0"
-                />
-              </label>
-            </div>
+            {/* Manuel justering fjernet */}
           </aside>
         </div>
       </main>
@@ -1363,8 +1379,21 @@ export default function RenovationWithList() {
       <footer
         id="footer-disclaimer"
         role="contentinfo"
-        className="mt-6 px-4 pb-24 md:pb-8 text-[11px] sm:text-xs text-gray-600 max-w-3xl mx-auto border-t border-gray-200 pt-4"
+        className="mt-6 px-4 pb-24 md:pb-8 text-[11px] sm:text-xs text-gray-600 max-w-3xl mx-auto border-t border-gray-200 pt-4 relative"
       >
+        {/* Mascot pointing to the disclaimer – sit just outside the left side on larger screens */}
+        <figure className="hidden md:flex md:absolute md:bottom-4 md:left-0 md:-translate-x-[82%] flex-col items-center pointer-events-auto select-none z-10 group">
+          <img
+            src={novaPoint}
+            alt="Maskot der peger på ansvarsfraskrivelsen"
+            className="w-12 sm:w-16 md:w-20 h-auto drop-shadow-md"
+            loading="lazy"
+            decoding="async"
+          />
+          <figcaption className="mt-1 text-[10px] text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity">
+            © Mohammad Mansour
+          </figcaption>
+        </figure>
         <p className="flex items-start gap-1.5">
           <AiOutlineInfoCircle className="mt-[2px] text-blue-600" />
           <span>

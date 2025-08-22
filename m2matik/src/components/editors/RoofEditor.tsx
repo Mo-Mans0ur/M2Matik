@@ -9,11 +9,13 @@ interface Props {
 export const RoofEditor: React.FC<Props> = ({ item, update }) => {
   const pitch = Math.max(0, Math.min(45, item.roofPitch || 0));
   const q = (item.roofQuality ?? 2) as number;
-  const extras = item.extras || {};
+  const extras: ItemRoof["extras"] = item.extras || {};
 
-  const updateExtra = (k: keyof ItemRoof["extras"], v: boolean | number) => {
-    const next = { ...(extras as any) };
-    (next as any)[k] = v as any;
+  const updateExtra = <K extends keyof ItemRoof["extras"]>(
+    k: K,
+    v: ItemRoof["extras"][K]
+  ) => {
+    const next = { ...extras, [k]: v } as ItemRoof["extras"];
     update("extras", next);
   };
 
@@ -47,9 +49,13 @@ export const RoofEditor: React.FC<Props> = ({ item, update }) => {
       {/* Kvalitet */}
       <div className="space-y-2">
         {(() => {
-          const name = ["Budget", "Basis", "Standard", "Premium", "Eksklusiv"][
-            Math.max(0, Math.min(4, q))
-          ];
+          const name = [
+            "Budget",
+            "Standard",
+            "Standard",
+            "Standard",
+            "Eksklusiv",
+          ][Math.max(0, Math.min(4, q))];
           return (
             <label className="text-xs font-medium">Kvalitet ({name})</label>
           );
@@ -67,9 +73,7 @@ export const RoofEditor: React.FC<Props> = ({ item, update }) => {
         />
         <div className="mt-1 hidden sm:flex text-[11px] text-gray-500 select-none justify-between px-0.5">
           <span>Budget</span>
-          <span>Basis</span>
-          <span>Standard</span>
-          <span>Premium</span>
+          <span className="mx-auto">Standard</span>
           <span>Eksklusiv</span>
         </div>
       </div>

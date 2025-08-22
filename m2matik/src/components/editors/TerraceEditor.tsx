@@ -5,47 +5,81 @@ interface Props {
   item: ItemTerrasse;
   update: (key: string, val: unknown) => void;
 }
-export const TerraceEditor: React.FC<Props> = ({ item, update }) => (
-  <div className="space-y-4">
-    <div>
-      <label className="block text-sm text-gray-600">
-        Størrelse (m²): <span className="font-medium">{item.area}</span>
-      </label>
-      <input
-        id={`terrace_area_${item.uid}`}
-        type="range"
-        min={0}
-        max={200}
-        step={1}
-        value={item.area}
-        onChange={(e) =>
-          update("area", Math.max(0, parseInt(e.target.value, 10)))
-        }
-        className="w-full accent-blue-500 h-2 rounded-lg appearance-none cursor-pointer mt-1"
-        title="Vælg terrasse størrelse i m²"
-      />
-    </div>
-    <div className="flex flex-wrap gap-4 text-sm">
-      {(
-        [
-          { key: "hævet", label: "Hævet" },
-          { key: "trappe", label: "Trappe" },
-          { key: "værn", label: "Værn" },
-        ] as const
-      ).map((ex) => (
-        <label key={ex.key} className="inline-flex items-center gap-2">
-          <input
-            type="checkbox"
-            className="w-4 h-4 accent-blue-500"
-            checked={!!item.extra[ex.key]}
-            onChange={(e) =>
-              update("extra", { ...item.extra, [ex.key]: e.target.checked })
-            }
-          />
-          {ex.label}
+export const TerraceEditor: React.FC<Props> = ({ item, update }) => {
+  const q = Math.max(0, Math.min(4, item.terraceQuality ?? 2));
+  const qualityName = [
+    "Budget",
+    "Standard",
+    "Standard",
+    "Standard",
+    "Eksklusiv",
+  ][q];
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm text-gray-600">
+          Størrelse (m²): <span className="font-medium">{item.area}</span>
         </label>
-      ))}
+        <input
+          id={`terrace_area_${item.uid}`}
+          type="range"
+          min={0}
+          max={200}
+          step={1}
+          value={item.area}
+          onChange={(e) =>
+            update("area", Math.max(0, parseInt(e.target.value, 10)))
+          }
+          className="w-full accent-blue-500 h-2 rounded-lg appearance-none cursor-pointer mt-1"
+          title="Vælg terrasse størrelse i m²"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm text-gray-600">
+          Kvalitet ({qualityName})
+        </label>
+        <input
+          type="range"
+          min={0}
+          max={4}
+          step={1}
+          value={q}
+          onChange={(e) =>
+            update("terraceQuality", parseInt(e.target.value, 10))
+          }
+          className="w-full accent-blue-500 h-2 rounded-lg appearance-none cursor-pointer"
+          title="Vælg terrassekvalitet"
+        />
+        <div className="mt-1 hidden sm:flex text-[11px] text-gray-500 select-none justify-between px-0.5">
+          <span>Budget</span>
+          <span className="mx-auto">Standard</span>
+          <span>Eksklusiv</span>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-4 text-sm">
+        {(
+          [
+            { key: "hævet", label: "Hævet" },
+            { key: "trappe", label: "Trappe" },
+            { key: "værn", label: "Værn" },
+          ] as const
+        ).map((ex) => (
+          <label key={ex.key} className="inline-flex items-center gap-2">
+            <input
+              type="checkbox"
+              className="w-4 h-4 accent-blue-500"
+              checked={!!item.extra[ex.key]}
+              onChange={(e) =>
+                update("extra", { ...item.extra, [ex.key]: e.target.checked })
+              }
+            />
+            {ex.label}
+          </label>
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 export default TerraceEditor;
