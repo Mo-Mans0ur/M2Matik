@@ -70,7 +70,7 @@
       "faktorLav": 0.7,
       "faktorNormal": 1,
       "faktorHøj": 2,
-      "beregning": "faktor_pa_m2_og_start"
+      "beregning": "faktor_kun_pa_m2"
     },
     "terrasse": {
       "startpris": 10000,
@@ -297,12 +297,6 @@
       "from": 3700,
       "to": 3790,
       "factor": 0.8,
-      "note": ""
-    },
-    {
-      "from": 3900,
-      "to": 3992,
-      "factor": 1,
       "note": ""
     },
     {

@@ -410,7 +410,7 @@ function main() {
       faktorLav: Number.isFinite(faktorLav) && faktorLav !== 0 ? faktorLav : 1,
       faktorNormal: 1,
       faktorHøj: Number.isFinite(faktorHøj) && faktorHøj !== 0 ? faktorHøj : 1,
-      beregning: "faktor_pa_m2_og_start",
+      beregning: "faktor_kun_pa_m2",
     };
   }
 
@@ -516,18 +516,38 @@ function main() {
   outExtras["terrasse"].push({ name: "værn", kind: "factor", amount: 1.2 });
 
   // ---- Optional second sheet 'postnummer' ----
-  const pnSheetName = (wb.SheetNames || []).find((n) =>
-    String(n || "")
-      .toLowerCase()
-      .includes("postnummer")
-  );
+  const pnSheetName = (wb.SheetNames || []).find((n) => {
+    const s = String(n || "").toLowerCase();
+    return (
+      s.includes("postnummer") ||
+      s.includes("postnumre") ||
+      s.includes("postnr")
+    );
+  });
   if (pnSheetName) {
     const wsPn = wb.Sheets[pnSheetName];
     const AP = XLSX.utils.sheet_to_json(wsPn, { header: 1, defval: "" });
     if (AP && AP.length) {
-      // Attempt to auto-detect columns by label
-      const headers = AP[0] || [];
+      // Attempt to locate a header row within the first few rows
+      let headerRow = -1;
+      for (let i = 0; i < Math.min(6, AP.length); i++) {
+        const rowTxt = String((AP[i] || []).join(" ")).toLowerCase();
+        if (
+          rowTxt.includes("post") ||
+          rowTxt.includes("fra") ||
+          rowTxt.includes("til") ||
+          rowTxt.includes("from") ||
+          rowTxt.includes("to") ||
+          rowTxt.includes("faktor") ||
+          rowTxt.includes("indeks")
+        ) {
+          headerRow = i;
+          break;
+        }
+      }
+      const headers = headerRow >= 0 ? AP[headerRow] : [];
       const idxOf = (cands) => {
+        if (headerRow < 0) return -1;
         const C = cands.map((s) => norm(s));
         for (let j = 0; j < headers.length; j++) {
           const h = norm(String(headers[j] ?? ""));
@@ -535,24 +555,82 @@ function main() {
         }
         return -1;
       };
-      const fromIdx = idxOf(["postnummer lav", "fra", "from"]);
-      const toIdx = idxOf(["postnummer høj", "til", "to"]);
-      const factorIdx = idxOf(["indeksering", "faktor", "factor"]);
+      // Support a broader set of Danish/English header variants
+      const fromIdx = idxOf([
+        "postnummer lav",
+        "postnummer fra",
+        "postnr lav",
+        "postnr fra",
+        "fra postnr",
+        "fra",
+        "from",
+      ]);
+      const toIdx = idxOf([
+        "postnummer høj",
+        "postnummer hoj",
+        "postnummer til",
+        "postnr hoj",
+        "postnr til",
+        "til postnr",
+        "til",
+        "to",
+      ]);
+      const factorIdx = idxOf([
+        "indeksering",
+        "faktor",
+        "factor",
+        "tillæg",
+        "tillaeg",
+        "prisindeks",
+        "pris indeks",
+        "prisindex",
+        "index",
+      ]);
+
       const noteIdx = idxOf(["note", "bemærkning", "bemaerkning", "kommentar"]);
-      for (let i = 1; i < AP.length; i++) {
-        const r = AP[i] || [];
-        const from = parseDk(r[fromIdx]);
-        const to = parseDk(r[toIdx]);
-        const factor = parseDk(r[factorIdx]) || 1;
-        const note = String(r[noteIdx] ?? "").trim();
-        if (!from && !to && !factor) continue;
-        if (!Number.isFinite(from) || !Number.isFinite(to)) continue;
-        outPostnr.push({
-          from: Math.round(from),
-          to: Math.round(to),
-          factor: Number(factor) || 1,
-          note,
-        });
+
+      if (fromIdx >= 0 && toIdx >= 0 && factorIdx >= 0) {
+        for (let i = headerRow + 1; i < AP.length; i++) {
+          const r = AP[i] || [];
+          const from = parseDk(r[fromIdx]);
+          const to = parseDk(r[toIdx]);
+          const factor = parseDk(r[factorIdx]);
+          const note = String(r[noteIdx] ?? "").trim();
+          if (!Number.isFinite(from) || !Number.isFinite(to)) continue;
+          if (from <= 0 || to <= 0) continue;
+          if (!Number.isFinite(factor) || factor <= 0) continue;
+          outPostnr.push({
+            from: Math.round(from),
+            to: Math.round(to),
+            factor: Number(factor),
+            note,
+          });
+        }
+      } else {
+        // Fallback: assume columns [0]=from, [1]=to, [2]=factor and parse rows
+        for (let i = 0; i < AP.length; i++) {
+          // Skip the detected header row if any
+          if (i === headerRow) continue;
+          const r = AP[i] || [];
+          const from = parseDk(r[0]);
+          const to = parseDk(r[1]);
+          const factor = parseDk(r[2]);
+          const note = String(r[3] ?? "").trim();
+          if (!Number.isFinite(from) || !Number.isFinite(to)) continue;
+          if (from <= 0 || to <= 0) continue;
+          if (!Number.isFinite(factor) || factor <= 0) continue;
+          outPostnr.push({
+            from: Math.round(from),
+            to: Math.round(to),
+            factor: Number(factor),
+            note,
+          });
+        }
+        if (outPostnr.length === 0) {
+          console.warn(
+            "[generate-prices] 'postnummer' sheet present but no valid rows parsed using fallback."
+          );
+        }
       }
     }
   }

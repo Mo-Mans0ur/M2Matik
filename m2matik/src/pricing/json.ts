@@ -7,6 +7,7 @@ export type JsonPrice = {
   beregning?:
     | "faktor_pa_m2_og_start"
     | "faktor_kun_pa_start"
+    | "faktor_kun_pa_m2"
     | "kun_start_med_faktor"
     | "kun_start"
     | "kun_m2";
@@ -84,6 +85,11 @@ export function baseTotal(
       return Math.max(
         0,
         Math.round(price.startpris * faktor + price.m2pris * sqm)
+      );
+    case "faktor_kun_pa_m2":
+      return Math.max(
+        0,
+        Math.round(price.startpris + price.m2pris * sqm * faktor)
       );
     case "kun_start_med_faktor":
       return Math.max(0, Math.round(price.startpris * faktor));
