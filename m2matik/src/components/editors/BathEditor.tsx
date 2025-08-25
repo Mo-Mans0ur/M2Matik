@@ -89,7 +89,7 @@ export const BathEditor: React.FC<Props> = ({ item, update }) => (
       aria-label="Størrelse i m2"
     />
     <div className="h-px bg-gray-200 my-2" />
-  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
       <label className="inline-flex items-center gap-2">
         <input
           type="checkbox"

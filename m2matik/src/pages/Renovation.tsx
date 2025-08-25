@@ -333,11 +333,11 @@ export default function RenovationWithList() {
   // Pris for én post (subtotal: base + extras; globals/postnr/escalation applied later)
   const calcItemSubtotal = (it: AnyItem): number => {
     const globalMult = pricing?.global?.multipliers ?? {};
-    const basementFactor = meta?.basement ? (globalMult.basement ?? 1) : 1;
-    const firstFloorFactor = meta?.firstFloor ? (globalMult.firstFloor ?? 1) : 1;
+    const basementFactor = meta?.basement ? globalMult.basement ?? 1 : 1;
+    const firstFloorFactor = meta?.firstFloor ? globalMult.firstFloor ?? 1 : 1;
 
-  let price = 0;
-  let applyStoreyFactors = true; // disable for exterior where not relevant
+    let price = 0;
+    let applyStoreyFactors = true; // disable for exterior where not relevant
 
     // 5-step quality factor helper: index 0..4 → [lav..1..høj]
     const fiveStepFactor = (idx: number, lav: number, høj: number) => {
@@ -405,7 +405,7 @@ export default function RenovationWithList() {
         const malRow = pricing?.base?.["maling"];
         price += baseWith(malRow, areaCovered, interpFaktor(qIdx, malRow));
 
-  // Independent lines handled as extras below
+        // Independent lines handled as extras below
 
         // Træværk: add as additive extra if selected (fixed and/or per m² lines in JSON)
         if (m.extras?.["træværk"]) {
@@ -449,16 +449,19 @@ export default function RenovationWithList() {
       }
       case "bad": {
         const b = it as Extract<AnyItem, { typeId: "bad" }>;
-  const qIdx = b.bathQuality ?? 2;
-  const row = b.roomKind === "toilet" ? pricing?.base?.["toilet"] : pricing?.base?.["badeværelse"];
+        const qIdx = b.bathQuality ?? 2;
+        const row =
+          b.roomKind === "toilet"
+            ? pricing?.base?.["toilet"]
+            : pricing?.base?.["badeværelse"];
         const sz = Math.max(2, Math.min(12, b.sizeM2 ?? 6));
         const n = Math.max(1, Math.min(5, b.count ?? 1));
-  const faktor = interpFaktor(qIdx, row);
+        const faktor = interpFaktor(qIdx, row);
         const baseUnfactored = baseWith(row, sz, 1);
         let base = Math.round(baseUnfactored * faktor) * n;
-  const picks: string[] = [];
+        const picks: string[] = [];
         if (b.bathPlacement === "new") picks.push("placering");
-  if (b.addons?.bruseniche) picks.push("bruseniche");
+        if (b.addons?.bruseniche) picks.push("bruseniche");
         if (picks.length) {
           base = extrasTotal(
             pricing?.extras?.["badeværelse"],
@@ -575,7 +578,12 @@ export default function RenovationWithList() {
         if (it.finish === "pudse") picks.push("pudse");
         if (it.finish === "træ") picks.push("træ");
         if (it.afterIso) picks.push("efterisolering");
-        price += extrasTotal(pricing?.extras?.["facade"], AREA, picks, "facade:extras");
+        price += extrasTotal(
+          pricing?.extras?.["facade"],
+          AREA,
+          picks,
+          "facade:extras"
+        );
         break;
       }
       case "walls": {
@@ -586,7 +594,15 @@ export default function RenovationWithList() {
         if (w.nyLet) picks.push("nyLet");
         if (w.nyBærende) picks.push("nyBærende");
         if (picks.length) {
-          base = extrasTotal(pricing?.extras?.["walls"], AREA, picks, "walls:extras", 1, undefined, base);
+          base = extrasTotal(
+            pricing?.extras?.["walls"],
+            AREA,
+            picks,
+            "walls:extras",
+            1,
+            undefined,
+            base
+          );
         }
         price += base;
         break;
@@ -597,12 +613,22 @@ export default function RenovationWithList() {
         if (d.demoLet) picks.push("let");
         if (d.demoBærende) picks.push("bærende");
         if (d.demoIndvendig) picks.push("indvendig");
-        price += extrasTotal(pricing?.extras?.["demolition"], 1, picks, "demolition:extras");
+        price += extrasTotal(
+          pricing?.extras?.["demolition"],
+          1,
+          picks,
+          "demolition:extras"
+        );
         break;
       }
       case "heating": {
         const picks = [it.system];
-        price += extrasTotal(pricing?.extras?.["heating"], 1, picks, "heating:extras");
+        price += extrasTotal(
+          pricing?.extras?.["heating"],
+          1,
+          picks,
+          "heating:extras"
+        );
         break;
       }
       case "el": {
@@ -639,7 +665,15 @@ export default function RenovationWithList() {
         const picks: string[] = [];
         if (k.placement === "new") picks.push("placering");
         if (picks.length) {
-          base = extrasTotal(pricing?.extras?.["køkken"], 1, picks, "køkken:extras", 1, undefined, base);
+          base = extrasTotal(
+            pricing?.extras?.["køkken"],
+            1,
+            picks,
+            "køkken:extras",
+            1,
+            undefined,
+            base
+          );
         }
         price += base;
         break;
@@ -678,7 +712,10 @@ export default function RenovationWithList() {
   };
 
   const sumAdjusted = useMemo(() => {
-    return items.reduce((acc, it) => acc + finalizePrice(calcItemSubtotal(it)), 0);
+    return items.reduce(
+      (acc, it) => acc + finalizePrice(calcItemSubtotal(it)),
+      0
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, meta, pricing]);
 

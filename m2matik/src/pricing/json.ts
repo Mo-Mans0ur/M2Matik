@@ -17,9 +17,19 @@ export type ExtraItem =
   | { name: string; kind: "per_m2"; amount: number }
   | { name: string; kind: "per_unit"; amount: number }
   | { name: string; kind: "factor"; amount: number }
-  | { name: string; kind: "factor_fn"; fn: string; params?: Record<string, number> };
+  | {
+      name: string;
+      kind: "factor_fn";
+      fn: string;
+      params?: Record<string, number>;
+    };
 
-export type PostnrRule = { from: number; to: number; factor: number; note?: string };
+export type PostnrRule = {
+  from: number;
+  to: number;
+  factor: number;
+  note?: string;
+};
 
 export type JsonData = {
   base: Record<string, JsonPrice>;
@@ -66,11 +76,15 @@ export function baseTotal(
   const fLav = price.faktorLav ?? 1;
   const fNorm = price.faktorNormal ?? 1;
   const fHoj = price.faktorHøj ?? 1;
-  const faktor = factorKind === "lav" ? fLav : factorKind === "høj" ? fHoj : fNorm;
+  const faktor =
+    factorKind === "lav" ? fLav : factorKind === "høj" ? fHoj : fNorm;
   const sqm = Math.max(0, areaM2);
   switch (price.beregning) {
     case "faktor_kun_pa_start":
-      return Math.max(0, Math.round(price.startpris * faktor + price.m2pris * sqm));
+      return Math.max(
+        0,
+        Math.round(price.startpris * faktor + price.m2pris * sqm)
+      );
     case "kun_start_med_faktor":
       return Math.max(0, Math.round(price.startpris * faktor));
     case "kun_start":
@@ -78,7 +92,10 @@ export function baseTotal(
     case "kun_m2":
       return Math.max(0, Math.round(price.m2pris * sqm));
     default:
-      return Math.max(0, Math.round(price.startpris + price.m2pris * sqm * faktor));
+      return Math.max(
+        0,
+        Math.round(price.startpris + price.m2pris * sqm * faktor)
+      );
   }
 }
 
@@ -148,29 +165,51 @@ export function total(base: number, extras: number) {
 
 // High-level calculators per spec
 export type Kvalitet = "lav" | "normal" | "høj";
-export function calcBase(row: JsonPrice | undefined, areaM2: number, kvalitet: Kvalitet) {
+export function calcBase(
+  row: JsonPrice | undefined,
+  areaM2: number,
+  kvalitet: Kvalitet
+) {
   return baseTotal(row, areaM2, kvalitet);
 }
 
-export function applyPostnr(total: number, postnr: number | undefined, rules: PostnrRule[] = []) {
+export function applyPostnr(
+  total: number,
+  postnr: number | undefined,
+  rules: PostnrRule[] = []
+) {
   if (!postnr) return Math.round(total);
   const hit = rules.find((r) => postnr >= r.from && postnr <= r.to);
   const f = hit?.factor ?? 1;
   return Math.round(total * f);
 }
 
-export function applyGlobal(total: number, selected: string[] = [], global?: JsonData["global"]) {
+export function applyGlobal(
+  total: number,
+  selected: string[] = [],
+  global?: JsonData["global"]
+) {
   let t = total;
   const m = global?.multipliers ?? {};
   for (const key of selected) {
-    const f = key === "basement" ? m.basement : key === "firstFloor" ? m.firstFloor : undefined;
+    const f =
+      key === "basement"
+        ? m.basement
+        : key === "firstFloor"
+        ? m.firstFloor
+        : undefined;
     if (typeof f === "number" && isFinite(f) && f > 0) t *= f;
   }
   return Math.round(t);
 }
 
-export function applyEscalation(total: number, esc?: { baseDate?: string; percentPerYear?: number }) {
-  const baseDate = esc?.baseDate ? new Date(esc.baseDate) : new Date("2025-01-01");
+export function applyEscalation(
+  total: number,
+  esc?: { baseDate?: string; percentPerYear?: number }
+) {
+  const baseDate = esc?.baseDate
+    ? new Date(esc.baseDate)
+    : new Date("2025-01-01");
   const pct = esc?.percentPerYear ?? 0.03;
   const years = (Date.now() - baseDate.getTime()) / (1000 * 60 * 60 * 24 * 365);
   return Math.round(total * Math.pow(1 + pct, years));

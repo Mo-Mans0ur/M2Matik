@@ -27,7 +27,9 @@ const EXCEL_CANDIDATES = [
   path.join(ROOT, "public", "data", "priser til beregning 3.xlsx"),
   path.join(ROOT, "public", "data", "priser-til-beregning.xlsx"),
 ];
-const EXCEL = EXCEL_CANDIDATES.find((p) => fs.existsSync(p)) || EXCEL_CANDIDATES[EXCEL_CANDIDATES.length - 1];
+const EXCEL =
+  EXCEL_CANDIDATES.find((p) => fs.existsSync(p)) ||
+  EXCEL_CANDIDATES[EXCEL_CANDIDATES.length - 1];
 const OUT = path.join(ROOT, "public", "data", "priser.json");
 
 const norm = (s) =>
@@ -172,11 +174,12 @@ function main() {
         faktorNormal: 1,
         faktorHøj:
           Number.isFinite(faktorHøj) && faktorHøj !== 0 ? faktorHøj : 1,
-        beregning: (key === "køkken")
-          ? "faktor_kun_pa_start"
-          : (key === "badeværelse" || key === "toilet")
-          ? "kun_start_med_faktor"
-          : "faktor_pa_m2_og_start",
+        beregning:
+          key === "køkken"
+            ? "faktor_kun_pa_start"
+            : key === "badeværelse" || key === "toilet"
+            ? "kun_start_med_faktor"
+            : "faktor_pa_m2_og_start",
       };
       continue;
     }
@@ -244,7 +247,7 @@ function main() {
       continue;
     }
 
-  // Badeværelse/Køkken: ny placering
+    // Badeværelse/Køkken: ny placering
     if (
       n.includes("placering") &&
       (n.includes("bad") || n.includes("badvrelse"))
@@ -281,9 +284,17 @@ function main() {
     // Badeværelse: bruseniche / badekar (fixed and optional per m² if provided)
     if (n.includes("bruseniche") || n.includes("badekar")) {
       if (startVal > 0)
-        pushExtra("badeværelse", { name: raw, kind: "fixed", amount: startVal });
+        pushExtra("badeværelse", {
+          name: raw,
+          kind: "fixed",
+          amount: startVal,
+        });
       if (m2Val > 0)
-        pushExtra("badeværelse", { name: raw + " (pr. m²)", kind: "per_m2", amount: m2Val });
+        pushExtra("badeværelse", {
+          name: raw + " (pr. m²)",
+          kind: "per_m2",
+          amount: m2Val,
+        });
       continue;
     }
 
@@ -386,17 +397,36 @@ function main() {
   }
 
   // ---- Inject items to replace hardcoded logic when missing in Excel ----
-  const ensure = (obj, key, def) => { if (!obj[key]) obj[key] = def; };
+  const ensure = (obj, key, def) => {
+    if (!obj[key]) obj[key] = def;
+  };
   // Facade as extras per m² + after insulation
   ensure(outExtras, "facade", []);
-  const facadeNames = outExtras["facade"].map((e) => (e.name||"").toLowerCase());
-  if (!facadeNames.some((n) => n.includes("male"))) outExtras["facade"].push({ name: "male", kind: "per_m2", amount: 250 });
-  if (!facadeNames.some((n) => n.includes("pudse"))) outExtras["facade"].push({ name: "pudse", kind: "per_m2", amount: 200 });
-  if (!facadeNames.some((n) => n.includes("træ") || n.includes("trae"))) outExtras["facade"].push({ name: "træ", kind: "per_m2", amount: 300 });
-  if (!facadeNames.some((n) => n.includes("efterisolering"))) outExtras["facade"].push({ name: "efterisolering", kind: "per_m2", amount: 200 });
+  const facadeNames = outExtras["facade"].map((e) =>
+    (e.name || "").toLowerCase()
+  );
+  if (!facadeNames.some((n) => n.includes("male")))
+    outExtras["facade"].push({ name: "male", kind: "per_m2", amount: 250 });
+  if (!facadeNames.some((n) => n.includes("pudse")))
+    outExtras["facade"].push({ name: "pudse", kind: "per_m2", amount: 200 });
+  if (!facadeNames.some((n) => n.includes("træ") || n.includes("trae")))
+    outExtras["facade"].push({ name: "træ", kind: "per_m2", amount: 300 });
+  if (!facadeNames.some((n) => n.includes("efterisolering")))
+    outExtras["facade"].push({
+      name: "efterisolering",
+      kind: "per_m2",
+      amount: 200,
+    });
 
   // Walls: base m2 baseline and extras
-  ensure(outBase, "walls", { startpris: 0, m2pris: 7000, faktorLav: 1, faktorNormal: 1, faktorHøj: 1, beregning: "kun_m2" });
+  ensure(outBase, "walls", {
+    startpris: 0,
+    m2pris: 7000,
+    faktorLav: 1,
+    faktorNormal: 1,
+    faktorHøj: 1,
+    beregning: "kun_m2",
+  });
   ensure(outExtras, "walls", []);
   outExtras["walls"].push({ name: "nyLet", kind: "fixed", amount: 9000 });
   outExtras["walls"].push({ name: "nyBærende", kind: "fixed", amount: 18000 });
@@ -404,21 +434,41 @@ function main() {
   // Demolition
   ensure(outExtras, "demolition", []);
   outExtras["demolition"].push({ name: "let", kind: "fixed", amount: 7000 });
-  outExtras["demolition"].push({ name: "bærende", kind: "fixed", amount: 15000 });
-  outExtras["demolition"].push({ name: "indvendig", kind: "fixed", amount: 6000 });
+  outExtras["demolition"].push({
+    name: "bærende",
+    kind: "fixed",
+    amount: 15000,
+  });
+  outExtras["demolition"].push({
+    name: "indvendig",
+    kind: "fixed",
+    amount: 6000,
+  });
 
   // Heating
   ensure(outExtras, "heating", []);
-  outExtras["heating"].push({ name: "fjernvarme", kind: "fixed", amount: 12000 });
+  outExtras["heating"].push({
+    name: "fjernvarme",
+    kind: "fixed",
+    amount: 12000,
+  });
   outExtras["heating"].push({ name: "radiator", kind: "fixed", amount: 8000 });
 
   // Elektriker per-unit 'stik'
   ensure(outExtras, "elektriker", outExtras["elektriker"] || []);
-  outExtras["elektriker"].push({ name: "stik", kind: "per_unit", amount: 1000 });
+  outExtras["elektriker"].push({
+    name: "stik",
+    kind: "per_unit",
+    amount: 1000,
+  });
 
   // Gulv: gulvvarme per m² (only if not already from Excel)
   ensure(outExtras, "gulv", outExtras["gulv"] || []);
-  if (!outExtras["gulv"].some((e) => String(e.name).toLowerCase().includes("gulvvarme"))) {
+  if (
+    !outExtras["gulv"].some((e) =>
+      String(e.name).toLowerCase().includes("gulvvarme")
+    )
+  ) {
     outExtras["gulv"].push({ name: "gulvvarme", kind: "per_m2", amount: 500 });
   }
 
@@ -426,7 +476,12 @@ function main() {
   ensure(outExtras, "tag", outExtras["tag"] || []);
   outExtras["tag"].push({ name: "saddeltag", kind: "factor", amount: 1.2 });
   outExtras["tag"].push({ name: "valm", kind: "factor", amount: 1.2 });
-  outExtras["tag"].push({ name: "roofSlope", kind: "factor_fn", fn: "roofSlopeLinear", params: { minDeg: 0, maxDeg: 45, min: 1, max: 2 } });
+  outExtras["tag"].push({
+    name: "roofSlope",
+    kind: "factor_fn",
+    fn: "roofSlopeLinear",
+    params: { minDeg: 0, maxDeg: 45, min: 1, max: 2 },
+  });
 
   // Terrasse: factors for hævet/værn
   ensure(outExtras, "terrasse", outExtras["terrasse"] || []);
@@ -434,7 +489,11 @@ function main() {
   outExtras["terrasse"].push({ name: "værn", kind: "factor", amount: 1.2 });
 
   // ---- Optional second sheet 'postnummer' ----
-  const pnSheetName = (wb.SheetNames || []).find((n) => String(n||"").toLowerCase().includes("postnummer"));
+  const pnSheetName = (wb.SheetNames || []).find((n) =>
+    String(n || "")
+      .toLowerCase()
+      .includes("postnummer")
+  );
   if (pnSheetName) {
     const wsPn = wb.Sheets[pnSheetName];
     const AP = XLSX.utils.sheet_to_json(wsPn, { header: 1, defval: "" });
@@ -461,7 +520,12 @@ function main() {
         const note = String(r[noteIdx] ?? "").trim();
         if (!from && !to && !factor) continue;
         if (!Number.isFinite(from) || !Number.isFinite(to)) continue;
-        outPostnr.push({ from: Math.round(from), to: Math.round(to), factor: Number(factor) || 1, note });
+        outPostnr.push({
+          from: Math.round(from),
+          to: Math.round(to),
+          factor: Number(factor) || 1,
+          note,
+        });
       }
     }
   }
