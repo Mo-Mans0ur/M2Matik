@@ -5,6 +5,10 @@ import { useEffect, useState } from "react";
 import { loadProjectMeta, saveProjectMeta } from "../lib/storage";
 import type { PropertyType, ProjectMeta } from "../lib/storage";
 
+/**
+ * FrontPage component: collects basic property info, pre-fills from storage,
+ * and starts the calculation flow by saving metadata and navigating onward.
+ */
 export default function FrontPage() {
   // constants
   const navigate = useNavigate();
@@ -15,7 +19,9 @@ export default function FrontPage() {
   const [firstFloor, setFirstFloor] = useState<boolean>(false);
   const [postcode, setPostcode] = useState<string>("");
 
-  // prefill hvis der findes data i localStorage
+  /**
+   * On mount: load any previously saved project metadata and prefill form state.
+   */
   useEffect(() => {
     const prev = loadProjectMeta();
     if (prev) {
@@ -29,6 +35,9 @@ export default function FrontPage() {
 
   const canContinue = sizeM2 > 0;
 
+  /**
+   * Save current form data to storage and navigate to ground type selection.
+   */
   const onStart = () => {
     const payload: ProjectMeta = {
       propertyType,
@@ -40,7 +49,7 @@ export default function FrontPage() {
     };
     saveProjectMeta(payload);
     // Go to the choice screen (GroundType) instead of directly to Renovation
-    navigate(`/groundtype`);
+    navigate("/groundtype");
   };
 
   return (

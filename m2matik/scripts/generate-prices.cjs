@@ -132,6 +132,17 @@ function main() {
     "pris/m2",
     "kr/m2",
     "krprm2",
+    "stk eller m2 pris",
+  ]);
+  const unitIdx = colIndex([
+    "pris pr stk",
+    "pr stk",
+    "pr. stk",
+    "stk pris",
+    "pris pr enhed",
+    "enhedspris",
+    "stk",
+    "stk eller m2 pris",
   ]);
   const lavIdx = colIndex([
     "laveste kvalitet faktor",
@@ -155,8 +166,9 @@ function main() {
   for (let i = headerRow + 1; i < A.length; i++) {
     const row = A[i];
     const raw = String(row?.[0] ?? "").trim();
-    if (!raw) continue;
+    const rowText = String((row || []).join(" ") || "");
     const n = norm(raw);
+    const nAll = norm(rowText);
 
     // Determine key mapping
     let key = toJsonKey(n);
@@ -187,6 +199,7 @@ function main() {
     // EXTRAS (non-factor only): capture common add-ons by category
     const startVal = parseDk(startIdx >= 0 ? row[startIdx] : 0);
     const m2Val = parseDk(m2Idx >= 0 ? row[m2Idx] : 0);
+    const unitVal = parseDk(unitIdx >= 0 ? row[unitIdx] : 0);
     const pushExtra = (cat, item) => {
       if (!outExtras[cat]) outExtras[cat] = [];
       outExtras[cat].push(item);
@@ -196,12 +209,7 @@ function main() {
     if (n === "tag" || n.includes("prisinddex")) continue;
 
     // Maling extras: træværk, stuk, høje paneler (add as separate fast and per m² lines if present)
-    if (
-      n === norm("træværk") ||
-      n === "traevrk" ||
-      n === "traevrk" ||
-      n === "traevaerk"
-    ) {
+    if (n === norm("træværk") || n === "traevrk" || n === "traevaerk") {
       if (startVal > 0)
         pushExtra("maling", {
           name: raw + " (fast)",
@@ -315,7 +323,7 @@ function main() {
     if (n.includes("tillg") || n.includes("tillaeg")) {
       // Only include if seems like døre og vinduer context
       if (n.includes("nyt")) {
-        const val = m2Val > 0 ? m2Val : startVal;
+        const val = unitVal > 0 ? unitVal : m2Val > 0 ? m2Val : startVal;
         if (val > 0)
           pushExtra("døre og vinduer", {
             name: raw,
@@ -355,16 +363,26 @@ function main() {
 
     // Tag: additive lines such as efterisolering, undertag, kviste
     if (
-      n.includes("efterisolering") ||
-      n.includes("undertag") ||
-      n.includes("kvist") ||
-      n.includes("kviste")
+      nAll.includes("efterisolering") ||
+      nAll.includes("undertag") ||
+      nAll.includes("kvist") ||
+      nAll.includes("kviste")
     ) {
-      const isKvist = n.includes("kvist") || n.includes("kviste");
+      const isKvist = nAll.includes("kvist") || nAll.includes("kviste");
       if (isKvist) {
-        const perUnit = m2Val > 0 ? m2Val : startVal;
-        if (perUnit > 0)
-          pushExtra("tag", { name: raw, kind: "per_unit", amount: perUnit });
+        const inlineVal = parseDk(rowText);
+        const perUnit =
+          unitVal > 0
+            ? unitVal
+            : m2Val > 0
+            ? m2Val
+            : startVal > 0
+            ? startVal
+            : inlineVal;
+        if (perUnit > 0) {
+          const name = raw || "kvist";
+          pushExtra("tag", { name, kind: "per_unit", amount: perUnit });
+        }
       } else {
         if (startVal > 0)
           pushExtra("tag", { name: raw, kind: "fixed", amount: startVal });
@@ -482,6 +500,15 @@ function main() {
     fn: "roofSlopeLinear",
     params: { minDeg: 0, maxDeg: 45, min: 1, max: 2 },
   });
+  // Ensure there is a per-unit 'kvist' entry to support antal kviste
+  {
+    const names = (outExtras["tag"] || []).map((e) =>
+      String(e.name || "").toLowerCase()
+    );
+    if (!names.some((n) => n.includes("kvist"))) {
+      outExtras["tag"].push({ name: "kvist", kind: "per_unit", amount: 80000 });
+    }
+  }
 
   // Terrasse: factors for hævet/værn
   ensure(outExtras, "terrasse", outExtras["terrasse"] || []);
