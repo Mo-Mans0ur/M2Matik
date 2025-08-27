@@ -625,9 +625,37 @@ export default function RenovationWithList() {
   const scopeFactor = scope === 0 ? 0.8 : scope === 2 ? 1.3 : 1.0;
   base = Math.round(base * scopeFactor);
         const picks: string[] = [];
-        if (w.nyLet) picks.push("nyLet");
-        if (w.nyBærende) picks.push("nyBærende");
-  if (w.doorInWall) picks.push("dør i væg", "dor i vaeg", "doer i vaeg", "dør", "tillæg dør", "tillaeg dor");
+        // Map UI toggles to JSON extras naming (normalized, with synonyms)
+        if (w.nyLet)
+          picks.push(
+            "ny skillevæg",
+            "nyskillevæg",
+            "ny skillevaeg",
+            "nyskillevaeg",
+            "skillevæg",
+            "skillevaeg",
+            "ny let"
+          );
+        if (w.nyBærende)
+          picks.push(
+            "ny bærende væg",
+            "nybaerendevaeg",
+            "ny bærende",
+            "ny baerende",
+            "bærende væg",
+            "baerende vaeg",
+            "bærende",
+            "baerende"
+          );
+        if (w.doorInWall)
+          picks.push(
+            "dør i væg",
+            "dor i vaeg",
+            "doer i vaeg",
+            "dør",
+            "tillæg dør",
+            "tillaeg dor"
+          );
         if (picks.length) {
           base = extrasTotal(
             pricing?.extras?.["walls"],

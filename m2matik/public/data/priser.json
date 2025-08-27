@@ -212,19 +212,19 @@
     ],
     "walls": [
       {
-        "name": "nyLet",
+        "name": "ny skillevæg",
         "kind": "fixed",
-        "amount": 9000
+        "amount": 30000
       },
       {
-        "name": "nyBærende",
+        "name": "ny bærende væg",
         "kind": "fixed",
-        "amount": 18000
+        "amount": 60000
       },
       {
         "name": "tillæg dør",
         "kind": "fixed",
-        "amount": 8000
+        "amount": 10000
       }
     ],
     "demolition": [

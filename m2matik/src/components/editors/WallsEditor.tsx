@@ -34,7 +34,7 @@ export const WallsEditor: React.FC<Props> = ({ item, update }) => (
           checked={!!item.nyLet}
           onChange={(e) => update("nyLet", e.target.checked)}
         />
-        Ny let skillevæg
+  Ny skillevæg
       </label>
       <label className="inline-flex items-center gap-2">
         <input
@@ -43,7 +43,7 @@ export const WallsEditor: React.FC<Props> = ({ item, update }) => (
           checked={!!item.nyBærende}
           onChange={(e) => update("nyBærende", e.target.checked)}
         />
-        Ny bærende væg
+  Ny bærende væg
       </label>
       <label className="inline-flex items-center gap-2">
         <input

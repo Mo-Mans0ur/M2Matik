@@ -439,6 +439,28 @@ function main() {
       continue;
     }
 
+  // Vægge: ny skillevæg (let) and ny bærende væg
+    if (nAll.includes("skillevæg") || nAll.includes("skillevaeg")) {
+      const perUnit = unitVal > 0 ? unitVal : 0;
+      if (perUnit > 0)
+    pushExtra("walls", { name: "ny skillevæg", kind: "per_unit", amount: perUnit });
+      else if (startVal > 0)
+    pushExtra("walls", { name: "ny skillevæg", kind: "fixed", amount: startVal });
+      else if (m2Val > 0)
+    pushExtra("walls", { name: "ny skillevæg (pr. m²)", kind: "per_m2", amount: m2Val });
+      continue;
+    }
+    if ((nAll.includes("bærende") || nAll.includes("baerende")) && (nAll.includes("væg") || nAll.includes("vaeg") || currentSection === "walls")) {
+      const perUnit = unitVal > 0 ? unitVal : 0;
+      if (perUnit > 0)
+    pushExtra("walls", { name: "ny bærende væg", kind: "per_unit", amount: perUnit });
+      else if (startVal > 0)
+    pushExtra("walls", { name: "ny bærende væg", kind: "fixed", amount: startVal });
+      else if (m2Val > 0)
+    pushExtra("walls", { name: "ny bærende væg (pr. m²)", kind: "per_m2", amount: m2Val });
+      continue;
+    }
+
     // Vægge: dør i væg (prefer per-unit if available) — also capture 'tillæg dør' within walls section
     if (
       (nAll.includes("dør") || nAll.includes("dor") || nAll.includes("doer") || nAll.includes("dore")) &&
@@ -570,9 +592,16 @@ function main() {
     faktorHøj: 1,
     beregning: "kun_m2",
   });
-  ensure(outExtras, "walls", []);
-  outExtras["walls"].push({ name: "nyLet", kind: "fixed", amount: 9000 });
-  outExtras["walls"].push({ name: "nyBærende", kind: "fixed", amount: 18000 });
+  ensure(outExtras, "walls", outExtras["walls"] || []);
+  {
+    const names = (outExtras["walls"] || []).map((e) => String(e.name || "").toLowerCase());
+    if (!names.some((n) => n.includes("skillev"))) {
+      outExtras["walls"].push({ name: "ny skillevæg", kind: "fixed", amount: 30000 });
+    }
+    if (!names.some((n) => n.includes("bærende") || n.includes("baerende"))) {
+      outExtras["walls"].push({ name: "ny bærende væg", kind: "fixed", amount: 60000 });
+    }
+  }
   // If no door-in-wall price was parsed, inject a sensible default so the UI toggle affects price
   {
     const hasDoor = (outExtras["walls"] || []).some((e) => {
@@ -580,7 +609,7 @@ function main() {
       return n.includes("dør") || n.includes("dor") || n.includes("doer") || n.includes("dore");
     });
     if (!hasDoor) {
-      outExtras["walls"].push({ name: "tillæg dør", kind: "fixed", amount: 8000 });
+      outExtras["walls"].push({ name: "tillæg dør", kind: "fixed", amount: 10000 });
     }
   }
 
