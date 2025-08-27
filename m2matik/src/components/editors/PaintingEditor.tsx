@@ -53,18 +53,16 @@ export const PaintingEditor: React.FC<Props> = ({ item, update }) => {
         <span className="mx-auto">Standard</span>
         <span>Eksklusiv</span>
       </div>
-      {q === 0 && (
-        <p className="text-xs text-gray-600 mt-1">
-          Budget er simpel afvaskning og 1 malerbehandling, hvorfor gamle
-          spartelhuller mv. vil være synlige.
+      <div className="text-[11px] text-gray-600/90 mt-1 space-y-0.5">
+        <p>
+          <strong>Budget:</strong> Afvaskning og 1 malerbehandling; eksisterende
+          spartelhuller m.v. kan være synlige.
         </p>
-      )}
-      {q === 4 && (
-        <p className="text-xs text-gray-600 mt-1">
-          Eksklusiv vil typisk indebære nedtagning af eksisterende filt/tapet,
-          fuldspartling, filt, grunding og malerbehandling.
+        <p>
+          <strong>Eksklusiv:</strong> Nedtagning af eksisterende filt/tapet,
+          fuldspartling, ny filt, grunding og malerbehandling.
         </p>
-      )}
+      </div>
       <div className="flex flex-wrap gap-4 text-sm">
         {(
           [

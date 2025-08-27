@@ -50,12 +50,13 @@ export type ItemDøreVinduer = ItemBase & {
   typeId: "døreOgVinduer";
   choice: "door" | "window"; // Linje 1
   operation: "replacement" | "newHole"; // Linje 2
-  newInstall: "door" | "window"; // Linje 3
+  newInstall?: "door" | "window"; // Linje 3 (UI fjernet)
   variant?: "doorWindowReplacement" | "newHole" | "newDoor" | "newWindow"; // legacy
   count: number;
   // Nye felter
   quality?: 0 | 1 | 2 | 3 | 4; // 5-stop slider
   sizeScale?: number; // 0-100 cm (UI slider). Baseline 50 cm = normal størrelse
+  upstairs?: boolean; // 1. sal tillæg per enhed
 };
 
 export type ItemTerrasse = ItemBase & {
@@ -91,6 +92,8 @@ export type ItemWalls = ItemBase & {
   // Nye vægge
   nyLet?: boolean; // ny letskillevæg
   nyBærende?: boolean; // ny bærende væg
+  scope?: 0 | 1 | 2; // 0=mindre, 1=standard, 2=meget
+  doorInWall?: boolean; // dør i væg
 };
 
 export type ItemDemolition = ItemBase & {

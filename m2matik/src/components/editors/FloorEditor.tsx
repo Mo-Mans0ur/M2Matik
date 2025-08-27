@@ -34,6 +34,15 @@ export const FloorEditor: React.FC<Props> = ({ item, update }) => {
         <span className="mx-auto">Standard</span>
         <span>Eksklusiv</span>
       </div>
+      <div className="text-[11px] text-gray-600/90 mt-1 space-y-0.5">
+        <p>
+          <strong>Budget:</strong> Slibning og lakering af eksisterende gulve.
+        </p>
+        <p>
+          <strong>Eksklusiv:</strong> Optagning af de gamle gulve, evt.
+          opretning og lægning af et dyrere gulv som fx et sildebensparket.
+        </p>
+      </div>
       <label className="inline-flex items-center gap-2">
         <input
           type="checkbox"
@@ -43,6 +52,15 @@ export const FloorEditor: React.FC<Props> = ({ item, update }) => {
         />
         Gulvvarme
       </label>
+      {item.hasFloorHeating && (
+        <div
+          role="note"
+          className="mt-2 text-[12px] sm:text-[13px] bg-amber-50 border border-amber-200 text-amber-800 rounded px-3 py-2"
+        >
+          vær opmærksom på at etablering af gulvvarme kræver udskiftning af
+          gulve.
+        </div>
+      )}
     </div>
   );
 };

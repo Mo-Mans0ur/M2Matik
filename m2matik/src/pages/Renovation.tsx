@@ -13,6 +13,7 @@ import { RiLayoutGridLine } from "react-icons/ri";
 import { AiOutlineInfoCircle } from "react-icons/ai";
 import { FaHouseFire } from "react-icons/fa6";
 import PaintingEditor from "../components/editors/PaintingEditor";
+import BackButton from "../components/BackButton";
 import FloorEditor from "../components/editors/FloorEditor";
 import BathEditor from "../components/editors/BathEditor";
 import DoorWindowEditor from "../components/editors/DoorWindowEditor";
@@ -34,6 +35,7 @@ import {
   loadPricesJson,
   type JsonData,
   type JsonPrice,
+  baseTotal,
   extrasTotal,
   applyPostnr,
   applyEscalation,
@@ -116,9 +118,9 @@ export default function RenovationWithList() {
     },
     {
       id: "bad",
-      label: "Bad/Toilet",
+      label: "Bad",
       icon: <FaBath />,
-      info: "Bad/Toilet: Renovering eller flytning af bad/toilet.",
+      info: "Bad: Renovering eller flytning (bruseniche/badekar som tilvalg).",
     },
     {
       id: "døreOgVinduer",
@@ -146,9 +148,9 @@ export default function RenovationWithList() {
     },
     {
       id: "walls",
-      label: "Vægge",
+      label: "Indvendige vægge",
       icon: <GiBrickWall />,
-      info: "Vægge: Opbygning af nye vægge (nedrivning er separat).",
+      info: "Indvendige vægge: Opbygning/tilpasning med omfang og dør i væg.",
     },
     {
       id: "demolition",
@@ -212,7 +214,7 @@ export default function RenovationWithList() {
           bathQuality: 2,
           roomKind: "bad",
           sizeM2: 6,
-          addons: { bruseniche: false },
+          addons: { bruseniche: false, badekar: false },
         };
         break;
       case "døreOgVinduer":
@@ -222,10 +224,10 @@ export default function RenovationWithList() {
           label,
           choice: "door",
           operation: "replacement",
-          newInstall: "door",
           count: 1,
           quality: 2,
-          sizeScale: 50,
+          sizeScale: 1,
+          upstairs: false,
         };
         break;
       case "terrasse":
@@ -233,7 +235,7 @@ export default function RenovationWithList() {
           uid: newUID(),
           typeId: "terrasse",
           label,
-          area: 0,
+          area: 20,
           terraceQuality: 2,
           extra: {},
         };
@@ -270,6 +272,8 @@ export default function RenovationWithList() {
           label,
           nyLet: false,
           nyBærende: false,
+          scope: 1,
+          doorInWall: false,
         };
         break;
       case "demolition":
@@ -406,7 +410,6 @@ export default function RenovationWithList() {
         price += baseWith(malRow, areaCovered, interpFaktor(qIdx, malRow));
 
         // Independent lines handled as extras below
-
         // Træværk: add as additive extra if selected (fixed and/or per m² lines in JSON)
         if (m.extras?.["træværk"]) {
           const addTv = extrasTotal(
@@ -418,17 +421,14 @@ export default function RenovationWithList() {
           price += addTv;
         }
 
-        const extraNames: string[] = [];
-        if (m.extras?.paneler) extraNames.push("høje", "paneler");
-        if (m.extras?.stuk) extraNames.push("stuk");
-        if (extraNames.length) {
-          const add = extrasTotal(
-            pricing?.extras?.["maling"],
-            AREA,
-            extraNames,
-            "maling:extras"
-          );
-          price += add;
+        // Stuk og Høje paneler: uafhængige linjer med fuldt areal og samme kvalitet
+        if (m.extras?.stuk) {
+          const row = pricing?.base?.["stuk"];
+          price += baseWith(row, AREA, interpFaktor(qIdx, row));
+        }
+        if (m.extras?.paneler) {
+          const row = pricing?.base?.["højePaneler"];
+          price += baseWith(row, AREA, interpFaktor(qIdx, row));
         }
         break;
       }
@@ -450,18 +450,16 @@ export default function RenovationWithList() {
       case "bad": {
         const b = it as Extract<AnyItem, { typeId: "bad" }>;
         const qIdx = b.bathQuality ?? 2;
-        const row =
-          b.roomKind === "toilet"
-            ? pricing?.base?.["toilet"]
-            : pricing?.base?.["badeværelse"];
+        const row = pricing?.base?.["badeværelse"]; // drop toilet kind and size dependence
         const sz = Math.max(2, Math.min(12, b.sizeM2 ?? 6));
-        const n = Math.max(1, Math.min(5, b.count ?? 1));
+        const n = 1; // count removed
         const faktor = interpFaktor(qIdx, row);
         const baseUnfactored = baseWith(row, sz, 1);
         let base = Math.round(baseUnfactored * faktor) * n;
         const picks: string[] = [];
         if (b.bathPlacement === "new") picks.push("placering");
         if (b.addons?.bruseniche) picks.push("bruseniche");
+        if (b.addons?.badekar) picks.push("badekar");
         if (picks.length) {
           base = extrasTotal(
             pricing?.extras?.["badeværelse"],
@@ -504,6 +502,13 @@ export default function RenovationWithList() {
         const cnt = Math.max(0, doorWin.count || 0);
         const row = pricing?.base?.["døreOgVinduer"];
         let unit = baseWith(row, 1, interpFaktor(qIdx, row));
+  // Apply size factor: 0=small(0.8), 1=medium(1.0), 2=large(1.5)
+        const sizeIdx = Math.max(
+          0,
+          Math.min(2, Math.round(doorWin.sizeScale ?? 1))
+        );
+  const sizeFactor = sizeIdx === 0 ? 0.8 : sizeIdx === 2 ? 1.5 : 1.0;
+        unit = Math.round(unit * sizeFactor);
         const picks: string[] = [];
         if (operation === "newHole") picks.push("nyt", "hul");
         if (picks.length) {
@@ -517,7 +522,7 @@ export default function RenovationWithList() {
             unit
           );
         }
-        price += Math.round(unit) * cnt;
+  price += Math.round(unit) * cnt;
         break;
       }
       case "terrasse": {
@@ -557,7 +562,9 @@ export default function RenovationWithList() {
         if (toggles.saddeltag) picks.push("saddeltag");
         if (toggles.valm) picks.push("valm");
         if ((toggles.kviste || 0) > 0) picks.push("kvist");
-        const slope = Math.max(0, Math.min(90, r.roofPitch || 0));
+        const slope = Math.max(0, Math.min(45, r.roofPitch || 0));
+        // Always apply roof slope factor function
+        picks.push("roofSlope");
         if (picks.length) {
           base = extrasTotal(
             pricing?.extras?.["tag"],
@@ -568,6 +575,29 @@ export default function RenovationWithList() {
             slope,
             base
           );
+        }
+        // Fallback: if undertag/efterisolering toggled but no extras defined in JSON, apply modest factors
+        const hasTagExtra = (name: string) => {
+          const list = pricing?.extras?.["tag"];
+          if (!list || list.length === 0) return false;
+          const norm = (s: string) =>
+            String(s || "")
+              .toLowerCase()
+              .normalize("NFD")
+              .replace(/\p{Diacritic}/gu, "")
+              .replace(/\s+/g, "")
+              .replace(/[^a-z0-9_.-]/g, "");
+          const nn = norm(name);
+          return list.some((e) => {
+            const en = norm(String((e as unknown as { name?: string }).name || ""));
+            return en.includes(nn) || nn.includes(en);
+          });
+        };
+        if (toggles.undertag && !hasTagExtra("undertag")) {
+          base = Math.round(base * 1.1);
+        }
+        if (toggles.efterisolering && !hasTagExtra("efterisolering")) {
+          base = Math.round(base * 1.15);
         }
         price += base;
         break;
@@ -589,10 +619,15 @@ export default function RenovationWithList() {
       case "walls": {
         const w = it as Extract<AnyItem, { typeId: "walls" }>;
         const baseRow = pricing?.base?.["walls"];
-        let base = baseWith(baseRow, AREA, 1);
+  let base = baseWith(baseRow, AREA, 1);
+  // Scope multiplier: 0=mindre(0.8), 1=standard(1.0), 2=meget(1.3)
+  const scope = (w.scope ?? 1) as 0 | 1 | 2;
+  const scopeFactor = scope === 0 ? 0.8 : scope === 2 ? 1.3 : 1.0;
+  base = Math.round(base * scopeFactor);
         const picks: string[] = [];
         if (w.nyLet) picks.push("nyLet");
         if (w.nyBærende) picks.push("nyBærende");
+  if (w.doorInWall) picks.push("dør i væg", "dor i vaeg", "doer i vaeg", "dør", "tillæg dør", "tillaeg dor");
         if (picks.length) {
           base = extrasTotal(
             pricing?.extras?.["walls"],
@@ -634,24 +669,68 @@ export default function RenovationWithList() {
       case "el": {
         const e = it as Extract<AnyItem, { typeId: "el" }>;
         const elRow = pricing?.base?.["elektriker"];
-        price += Math.max(0, Math.round(elRow?.startpris ?? 0));
-        const sticks = Math.max(0, Number(e.stikCount ?? 0));
-        const picks: string[] = [];
-        if (sticks > 0) picks.push("stik");
-        if (e.newPanel) picks.push("ny", "tavle");
-        if (e.evCharger) picks.push("bil", "lader");
-        if (e.hiddenRuns) picks.push("skjulte", "føringer");
-        if (picks.length) {
-          price = extrasTotal(
+        // Base el: use full AREA and the JSON beregning rule; factors are 1 by default
+        let base = baseTotal(elRow, AREA, "normal", "elektriker:base");
+        // Apply toggled extras first (do not tie to unit counts)
+        if (e.newPanel) {
+          base = extrasTotal(
             pricing?.extras?.["elektriker"],
+            AREA,
+            ["ny tavle"],
+            "elektriker:ny_tavle",
             1,
-            picks,
-            "elektriker:extras",
-            sticks,
             undefined,
-            price
+            base
           );
         }
+        if (e.evCharger) {
+          base = extrasTotal(
+            pricing?.extras?.["elektriker"],
+            AREA,
+            ["billader tillæg", "bil lader", "billader"],
+            "elektriker:billader",
+            1,
+            undefined,
+            base
+          );
+        }
+        if (e.hiddenRuns) {
+          base = extrasTotal(
+            pricing?.extras?.["elektriker"],
+            AREA,
+            ["tillæg skjulte føringer", "skjulte føringer"],
+            "elektriker:skjulte_foringer",
+            1,
+            undefined,
+            base
+          );
+        }
+        // Units: apply per-unit lines separately to honor different rates
+        const stikUnits = Math.max(0, Number(e.stikCount ?? 0));
+        if (stikUnits > 0) {
+          base = extrasTotal(
+            pricing?.extras?.["elektriker"],
+            AREA,
+            ["stik"],
+            "elektriker:stik",
+            stikUnits,
+            undefined,
+            base
+          );
+        }
+        const outletUnits = Math.max(0, Number(e.outletCount ?? 0));
+        if (outletUnits > 0) {
+          base = extrasTotal(
+            pricing?.extras?.["elektriker"],
+            AREA,
+            ["afbrydere", "udtag"],
+            "elektriker:afbrydere_udtag",
+            outletUnits,
+            undefined,
+            base
+          );
+        }
+        price += base;
         break;
       }
       case "køkken": {
@@ -662,18 +741,27 @@ export default function RenovationWithList() {
         const start = (row?.startpris ?? 0) * (faktor || 1);
         const areaPart = (row?.m2pris ?? 0) * AREA;
         let base = Math.max(0, Math.round(start + areaPart));
-        const picks: string[] = [];
-        if (k.placement === "new") picks.push("placering");
-        if (picks.length) {
-          base = extrasTotal(
-            pricing?.extras?.["køkken"],
-            1,
-            picks,
-            "køkken:extras",
-            1,
-            undefined,
-            base
-          );
+        // Ny placering: add kitchen placement extra if present; otherwise add fixed 30.000
+        if (k.placement === "new") {
+          const list = pricing?.extras?.["køkken"];
+          if (list && list.length) {
+            const before = base;
+            base = extrasTotal(
+              list,
+              1,
+              ["placering"],
+              "køkken:extras",
+              1,
+              undefined,
+              base
+            );
+            // Defensive: if extras didn't change the base (no match), add fallback 30k
+            if (base === before) {
+              base = Math.max(0, Math.round(base + 30000));
+            }
+          } else {
+            base = Math.max(0, Math.round(base + 30000));
+          }
         }
         price += base;
         break;
@@ -773,6 +861,10 @@ export default function RenovationWithList() {
           items.length > 0 ? "pb-dynamic md:pb-0" : "pb-8"
         }`}
       >
+        {/* Back to GroundType */}
+        <div className="flex items-center justify-between">
+          <BackButton />
+        </div>
         {/* Grunddata */}
         {meta && (
           <div className="bg-blue-50 border border-blue-200 text-blue-800 rounded-xl p-2.5 sm:p-3 flex items-center justify-between">
@@ -1204,7 +1296,7 @@ export default function RenovationWithList() {
                         </div>
                         <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
                           <span className="text-xs sm:text-sm font-semibold">
-                            {formatKr(Math.round(itemAdj))}
+                            {formatKr(smartRound(itemAdj))}
                           </span>
                         </div>
                       </div>

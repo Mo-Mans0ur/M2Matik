@@ -9,8 +9,10 @@
     "prebuild": "npm run prices:generate",
     "lint": "eslint .",
     "preview": "vite preview",
+    "preview:test": "npm run build && npm run preview -- --port=4173",
     "prices:generate": "node scripts/generate-prices.cjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "react": "^19.1.0",
@@ -21,6 +23,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",
+    "@playwright/test": "^1.55.0",
     "@tailwindcss/postcss": "^4.1.11",
     "@tailwindcss/vite": "^4.1.11",
     "@types/node": "^24.2.1",

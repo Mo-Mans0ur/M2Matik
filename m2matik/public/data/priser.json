@@ -2,7 +2,7 @@
   "base": {
     "maling": {
       "startpris": 5000,
-      "m2pris": 1400,
+      "m2pris": 800,
       "faktorLav": 0.6,
       "faktorNormal": 1,
       "faktorHøj": 1.4,
@@ -41,8 +41,8 @@
       "beregning": "kun_start_med_faktor"
     },
     "køkken": {
-      "startpris": 300000,
-      "m2pris": 1500,
+      "startpris": 150000,
+      "m2pris": 1000,
       "faktorLav": 0.3,
       "faktorNormal": 1,
       "faktorHøj": 2,
@@ -74,8 +74,8 @@
     },
     "terrasse": {
       "startpris": 10000,
-      "m2pris": 3000,
-      "faktorLav": 0.6,
+      "m2pris": 2500,
+      "faktorLav": 0.7,
       "faktorNormal": 1,
       "faktorHøj": 1.4,
       "beregning": "faktor_pa_m2_og_start"
@@ -107,19 +107,19 @@
       {
         "name": "træværk (pr. m²)",
         "kind": "per_m2",
-        "amount": 800
+        "amount": 1000
       }
     ],
     "badeværelse": [
       {
-        "name": "ny placering bad",
-        "kind": "fixed",
-        "amount": 25000
-      },
-      {
         "name": "bruseniche",
         "kind": "fixed",
         "amount": 20000
+      },
+      {
+        "name": "ny placering bad",
+        "kind": "fixed",
+        "amount": 30000
       }
     ],
     "elektriker": [
@@ -136,7 +136,32 @@
       {
         "name": "stik",
         "kind": "per_unit",
-        "amount": 1000
+        "amount": 1200
+      },
+      {
+        "name": "ny tavle",
+        "kind": "fixed",
+        "amount": 15000
+      },
+      {
+        "name": "tillæg skjulte føringer",
+        "kind": "fixed",
+        "amount": 2000
+      },
+      {
+        "name": "tillæg skjulte føringer (pr. m²)",
+        "kind": "per_m2",
+        "amount": 500
+      },
+      {
+        "name": "billader tillæg",
+        "kind": "fixed",
+        "amount": 15000
+      },
+      {
+        "name": "afbrydere og udtag",
+        "kind": "per_unit",
+        "amount": 1600
       }
     ],
     "døre og vinduer": [
@@ -195,6 +220,11 @@
         "name": "nyBærende",
         "kind": "fixed",
         "amount": 18000
+      },
+      {
+        "name": "tillæg dør",
+        "kind": "fixed",
+        "amount": 8000
       }
     ],
     "demolition": [
@@ -224,6 +254,13 @@
         "name": "radiator",
         "kind": "fixed",
         "amount": 8000
+      }
+    ],
+    "køkken": [
+      {
+        "name": "ny placering køkken",
+        "kind": "fixed",
+        "amount": 30000
       }
     ],
     "gulv": [

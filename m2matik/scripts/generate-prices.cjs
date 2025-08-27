@@ -23,6 +23,9 @@ const XLSX = require("xlsx");
 const ROOT = path.join(__dirname, "..");
 // Prefer the new file name if present, otherwise fallback to the original
 const EXCEL_CANDIDATES = [
+  // Newest first
+  path.join(ROOT, "public", "data", "priser-til-beregning-4.xlsx"),
+  path.join(ROOT, "public", "data", "priser til beregning 4.xlsx"),
   path.join(ROOT, "public", "data", "priser-til-beregning-3.xlsx"),
   path.join(ROOT, "public", "data", "priser til beregning 3.xlsx"),
   path.join(ROOT, "public", "data", "priser-til-beregning.xlsx"),
@@ -76,6 +79,17 @@ function toJsonKey(n) {
       return "gulv";
     case "stuk":
       return "stuk";
+  case "indvendigevaegge":
+  case "indvendigevaeg":
+  case "indvendigvaeg":
+  case "indvendigvaegge":
+  case "vaeg":
+  case "vaegge":
+    case "vaeg":
+  case "vaegindvendig":
+  case "indrevaegge":
+  case "indrevaeg":
+      return "walls";
     case "hjepaneler":
     case "hje":
     case "hjeepaneler":
@@ -163,6 +177,7 @@ function main() {
   const outPostnr = [];
 
   // Scan all rows; capture before and after 'tag'
+  let currentSection = null; // remembers last base key encountered (e.g., "køkken")
   for (let i = headerRow + 1; i < A.length; i++) {
     const row = A[i];
     const raw = String(row?.[0] ?? "").trim();
@@ -172,13 +187,13 @@ function main() {
 
     // Determine key mapping
     let key = toJsonKey(n);
-    if (key) {
+  if (key) {
       const startpris = parseDk(startIdx >= 0 ? row[startIdx] : 0);
       const m2pris = parseDk(m2Idx >= 0 ? row[m2Idx] : 0);
       const faktorLav = lavIdx >= 0 ? parseDk(row[lavIdx]) : 1;
       const faktorHøj = hojIdx >= 0 ? parseDk(row[hojIdx]) : 1;
 
-      outBase[key] = {
+  outBase[key] = {
         startpris: Number.isFinite(startpris) ? startpris : 0,
         m2pris: Number.isFinite(m2pris) ? m2pris : 0,
         faktorLav:
@@ -192,7 +207,8 @@ function main() {
             : key === "badeværelse" || key === "toilet"
             ? "kun_start_med_faktor"
             : "faktor_pa_m2_og_start",
-      };
+  };
+  currentSection = key; // remember section for subsequent extras lines
       continue;
     }
 
@@ -255,10 +271,10 @@ function main() {
       continue;
     }
 
-    // Badeværelse/Køkken: ny placering
+    // Badeværelse/Køkken: ny placering (look across the whole row text)
     if (
-      n.includes("placering") &&
-      (n.includes("bad") || n.includes("badvrelse"))
+      (nAll.includes("placering") || n.includes("placering")) &&
+      (nAll.includes("bad") || nAll.includes("badevrelse") || n.includes("badvrelse"))
     ) {
       if (startVal > 0)
         pushExtra("badeværelse", {
@@ -275,8 +291,15 @@ function main() {
       continue;
     }
     if (
-      n.includes("placering") &&
-      (n.includes("kkken") || n.includes("kkken"))
+      (nAll.includes("placering") || n.includes("placering")) &&
+      (
+        // explicit kitchen mention in any cell text
+        nAll.includes("kkken") ||
+        // or we are currently inside the kitchen section
+        currentSection === "køkken" ||
+        // or the line is just a generic "ny placering" without qualifiers
+        n === "nyplacering"
+      )
     ) {
       if (startVal > 0)
         pushExtra("køkken", { name: raw, kind: "fixed", amount: startVal });
@@ -319,10 +342,79 @@ function main() {
       continue;
     }
 
-    // Døre/Vinduer: tillæg ved nyt (treated as fixed per unit)
+    // Elektriker: pris pr stik (per unit)
+    if (n.includes("pris") && n.includes("stik")) {
+      const perUnit = unitVal > 0 ? unitVal : m2Val > 0 ? m2Val : startVal;
+      if (perUnit > 0)
+        pushExtra("elektriker", { name: "stik", kind: "per_unit", amount: perUnit });
+      continue;
+    }
+
+    // Elektriker: pr afbrydere og udtag (per unit)
+    if ((n.includes("afbrydere") || n.includes("afbryder")) && n.includes("udtag")) {
+      const perUnit = unitVal > 0 ? unitVal : m2Val > 0 ? m2Val : startVal;
+      if (perUnit > 0)
+        pushExtra("elektriker", {
+          name: raw || "afbrydere og udtag",
+          kind: "per_unit",
+          amount: perUnit,
+        });
+      continue;
+    }
+
+  // Elektriker: tillæg skjulte føringer (fixed and/or per m2)
+  if (n.includes("skjult")) {
+      if (startVal > 0)
+        pushExtra("elektriker", { name: raw, kind: "fixed", amount: startVal });
+      if (m2Val > 0)
+        pushExtra("elektriker", {
+          name: raw + " (pr. m²)",
+          kind: "per_m2",
+          amount: m2Val,
+        });
+      continue;
+    }
+
+    // Elektriker: billader tillæg (fixed and/or per m2 if provided)
+    if (n.includes("billader") || (n.includes("bil") && n.includes("lader"))) {
+      if (startVal > 0)
+        pushExtra("elektriker", { name: raw, kind: "fixed", amount: startVal });
+      if (m2Val > 0)
+        pushExtra("elektriker", {
+          name: raw + " (pr. m²)",
+          kind: "per_m2",
+          amount: m2Val,
+        });
+      continue;
+    }
+
+    // Walls-specific: capture 'tillæg dør' while inside walls section (before generic tillæg handling)
+    if (
+      (nAll.includes("tillaeg") || nAll.includes("tillg")) &&
+      (nAll.includes("dor") || nAll.includes("doer")) &&
+      (currentSection === "walls" || nAll.includes("vaeg"))
+    ) {
+      const perUnit = unitVal > 0 ? unitVal : 0;
+      if (perUnit > 0) {
+        pushExtra("walls", { name: raw || "tillæg dør", kind: "per_unit", amount: perUnit });
+      } else {
+        if (startVal > 0)
+          pushExtra("walls", { name: raw || "tillæg dør", kind: "fixed", amount: startVal });
+        if (m2Val > 0)
+          pushExtra("walls", { name: (raw || "tillæg dør") + " (pr. m²)", kind: "per_m2", amount: m2Val });
+      }
+      continue;
+    }
+
+    // Døre/Vinduer: tillæg ved nyt (treated as fixed per unit) — only in DV context
     if (n.includes("tillg") || n.includes("tillaeg")) {
-      // Only include if seems like døre og vinduer context
-      if (n.includes("nyt")) {
+      const isDV =
+        currentSection === "døreOgVinduer" ||
+        nAll.includes("vindue") ||
+        nAll.includes("vindu") ||
+        nAll.includes("dor") ||
+        nAll.includes("doer");
+      if (isDV && (nAll.includes("nyt") || nAll.includes("ny"))) {
         const val = unitVal > 0 ? unitVal : m2Val > 0 ? m2Val : startVal;
         if (val > 0)
           pushExtra("døre og vinduer", {
@@ -331,7 +423,6 @@ function main() {
             amount: val,
           });
       }
-      // Skip roof factors and similar here
       continue;
     }
 
@@ -345,6 +436,40 @@ function main() {
           kind: "per_m2",
           amount: m2Val,
         });
+      continue;
+    }
+
+    // Vægge: dør i væg (prefer per-unit if available) — also capture 'tillæg dør' within walls section
+    if (
+      (nAll.includes("dør") || nAll.includes("dor") || nAll.includes("doer") || nAll.includes("dore")) &&
+      (nAll.includes("væg") || nAll.includes("vaeg") || currentSection === "walls")
+    ) {
+      const perUnit = unitVal > 0 ? unitVal : 0;
+      if (perUnit > 0) {
+        pushExtra("walls", { name: "dør i væg", kind: "per_unit", amount: perUnit });
+      } else {
+        if (startVal > 0)
+          pushExtra("walls", { name: raw || "dør i væg", kind: "fixed", amount: startVal });
+        if (m2Val > 0)
+          pushExtra("walls", { name: (raw || "dør i væg") + " (pr. m²)", kind: "per_m2", amount: m2Val });
+      }
+      continue;
+    }
+
+    // Fallback: capture generic 'tillæg dør' as Walls door if not matched above
+    if (
+      (nAll.includes("tillg") || nAll.includes("tillaeg")) &&
+      (nAll.includes("dør") || nAll.includes("dor") || nAll.includes("doer") || nAll.includes("dore"))
+    ) {
+      const perUnit = unitVal > 0 ? unitVal : 0;
+      if (perUnit > 0) {
+        pushExtra("walls", { name: raw || "tillæg dør", kind: "per_unit", amount: perUnit });
+      } else {
+        if (startVal > 0)
+          pushExtra("walls", { name: raw || "tillæg dør", kind: "fixed", amount: startVal });
+        if (m2Val > 0)
+          pushExtra("walls", { name: (raw || "tillæg dør") + " (pr. m²)", kind: "per_m2", amount: m2Val });
+      }
       continue;
     }
 
@@ -448,6 +573,16 @@ function main() {
   ensure(outExtras, "walls", []);
   outExtras["walls"].push({ name: "nyLet", kind: "fixed", amount: 9000 });
   outExtras["walls"].push({ name: "nyBærende", kind: "fixed", amount: 18000 });
+  // If no door-in-wall price was parsed, inject a sensible default so the UI toggle affects price
+  {
+    const hasDoor = (outExtras["walls"] || []).some((e) => {
+      const n = String(e.name || "").toLowerCase();
+      return n.includes("dør") || n.includes("dor") || n.includes("doer") || n.includes("dore");
+    });
+    if (!hasDoor) {
+      outExtras["walls"].push({ name: "tillæg dør", kind: "fixed", amount: 8000 });
+    }
+  }
 
   // Demolition
   ensure(outExtras, "demolition", []);
@@ -472,13 +607,63 @@ function main() {
   });
   outExtras["heating"].push({ name: "radiator", kind: "fixed", amount: 8000 });
 
-  // Elektriker per-unit 'stik'
+  // Elektriker per-unit 'stik' (inject only if not provided by Excel)
   ensure(outExtras, "elektriker", outExtras["elektriker"] || []);
-  outExtras["elektriker"].push({
-    name: "stik",
-    kind: "per_unit",
-    amount: 1000,
-  });
+  {
+    const hasStik = (outExtras["elektriker"] || []).some((e) =>
+      String(e.name || "").toLowerCase().includes("stik")
+    );
+    if (!hasStik) {
+      outExtras["elektriker"].push({ name: "stik", kind: "per_unit", amount: 1000 });
+    }
+  }
+  {
+    const hasOutlets = (outExtras["elektriker"] || []).some((e) => {
+      const n = String(e.name || "").toLowerCase();
+      return n.includes("afbrydere") || n.includes("udtag");
+    });
+  if (!hasOutlets) {
+      outExtras["elektriker"].push({
+        name: "afbrydere og udtag",
+        kind: "per_unit",
+    amount: 1600,
+      });
+    }
+  }
+
+  // Køkken: ensure a default "ny placering" exists if not present in Excel
+  ensure(outExtras, "køkken", outExtras["køkken"] || []);
+  {
+    const hasPlacering = (outExtras["køkken"] || []).some((e) =>
+      String(e.name || "").toLowerCase().includes("placering")
+    );
+    if (!hasPlacering) {
+      outExtras["køkken"].push({
+        name: "ny placering køkken",
+        kind: "fixed",
+        amount: 30000,
+      });
+    }
+  }
+
+  // Dedupe 'ny placering' lines to avoid double-charging (keep the highest per kind)
+  const dedupePlacering = (cat) => {
+    const list = outExtras[cat];
+    if (!Array.isArray(list) || list.length === 0) return;
+    const isPlac = (e) => String(e.name || "").toLowerCase().includes("placering");
+    const fixed = list.filter((e) => e.kind === "fixed" && isPlac(e));
+    const perM2 = list.filter((e) => e.kind === "per_m2" && isPlac(e));
+    const bestFixed = fixed.reduce((a, b) => (b.amount > (a?.amount ?? -1) ? b : a), null);
+    const bestPerM2 = perM2.reduce((a, b) => (b.amount > (a?.amount ?? -1) ? b : a), null);
+    const others = list.filter(
+      (e) => !(isPlac(e) && (e.kind === "fixed" || e.kind === "per_m2"))
+    );
+    if (bestFixed) others.push(bestFixed);
+    if (bestPerM2) others.push(bestPerM2);
+    outExtras[cat] = others;
+  };
+  dedupePlacering("badeværelse");
+  dedupePlacering("køkken");
 
   // Gulv: gulvvarme per m² (only if not already from Excel)
   ensure(outExtras, "gulv", outExtras["gulv"] || []);
@@ -514,6 +699,41 @@ function main() {
   ensure(outExtras, "terrasse", outExtras["terrasse"] || []);
   outExtras["terrasse"].push({ name: "hævet", kind: "factor", amount: 1.5 });
   outExtras["terrasse"].push({ name: "værn", kind: "factor", amount: 1.2 });
+
+  // Robust fallback: if 'tillæg dør' for walls wasn't found on the main sheet, scan other sheets
+  {
+    ensure(outExtras, "walls", outExtras["walls"] || []);
+    const hasDoor = (outExtras["walls"] || []).some((e) => {
+      const n = String(e.name || "").toLowerCase();
+      return n.includes("dør") || n.includes("dor") || n.includes("doer");
+    });
+    if (!hasDoor) {
+      const found = { ok: false };
+      for (const sheetName of wb.SheetNames) {
+        if (found.ok) break;
+        const wsAny = wb.Sheets[sheetName];
+        const A2 = XLSX.utils.sheet_to_json(wsAny, { header: 1, defval: "" });
+        for (let i = 0; i < A2.length; i++) {
+          const row = A2[i] || [];
+          const rowText = String(row.join(" ") || "");
+          const nAll2 = norm(rowText);
+          if (
+            (nAll2.includes("tillaeg") || nAll2.includes("tillg")) &&
+            (nAll2.includes("dor") || nAll2.includes("doer"))
+          ) {
+            // pick the largest numeric value on this row
+            const nums = row.map((c) => parseDk(c)).filter((n) => Number.isFinite(n) && n > 0);
+            const val = nums.length ? Math.max(...nums) : 0;
+            if (val > 0) {
+              outExtras["walls"].push({ name: "tillæg dør", kind: "fixed", amount: val });
+              found.ok = true;
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
 
   // ---- Optional second sheet 'postnummer' ----
   const pnSheetName = (wb.SheetNames || []).find((n) => {

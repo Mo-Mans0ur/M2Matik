@@ -9,6 +9,12 @@ interface Props {
 export const DoorWindowEditor: React.FC<Props> = ({ item, update }) => {
   return (
     <div className="space-y-2">
+      <div
+        role="note"
+        className="text-[12px] sm:text-[13px] bg-blue-50 border border-blue-200 text-blue-800 rounded px-3 py-2"
+      >
+        Pris er for vindue/dør + montering.
+      </div>
       {/* Linje 2: Udskiftning / Nyt hul */}
       <div className="flex gap-4 flex-wrap pt-1 border-t mt-1">
         {(
@@ -32,21 +38,7 @@ export const DoorWindowEditor: React.FC<Props> = ({ item, update }) => {
           </label>
         ))}
       </div>
-      {/* Linje 3: Ny dør / Nyt vindue */}
-      <div className="flex gap-4 flex-wrap pt-1">
-        {(["door", "window"] as const).map((val) => (
-          <label key={val} className="inline-flex items-center text-sm gap-1">
-            <input
-              type="radio"
-              name={`dw_newInstall_${item.uid}`}
-              value={val}
-              checked={item.newInstall === val}
-              onChange={() => update("newInstall", val)}
-            />
-            {val === "door" ? "Ny dør" : "Nyt vindue"}
-          </label>
-        ))}
-      </div>
+      {/* Ny dør/nyt vindue valg fjernet */}
       <label className="text-sm font-medium flex items-center gap-2">
         Antal:
         <input
@@ -95,26 +87,25 @@ export const DoorWindowEditor: React.FC<Props> = ({ item, update }) => {
           </div>
         </div>
         <div>
-          <label className="block text-xs text-gray-600">
-            Størrelse (cm): {item.sizeScale ?? 0} cm
-          </label>
+          <label className="block text-xs text-gray-600">Størrelse</label>
           <input
             type="range"
             min={0}
-            max={100}
+            max={2}
             step={1}
-            value={item.sizeScale ?? 0}
+            value={(item.sizeScale ?? 1) > 2 ? 1 : item.sizeScale ?? 1}
             onChange={(e) => update("sizeScale", parseInt(e.target.value, 10))}
             className="w-full accent-blue-500 h-2 rounded-lg appearance-none cursor-pointer"
-            aria-label="Størrelse (cm)"
-            title="Størrelse (cm)"
+            aria-label="Størrelse"
+            title="Størrelse"
           />
-          <div className="relative h-4 mt-1 text-[11px] text-gray-500 select-none">
-            <span className="absolute left-0">0 cm</span>
-            <span className="absolute left-1/2 -translate-x-1/2">50 cm</span>
-            <span className="absolute right-0">100 cm</span>
+          <div className="mt-1 hidden sm:flex text-[11px] text-gray-500 select-none justify-between px-0.5">
+            <span>Små</span>
+            <span className="mx-auto">Medium</span>
+            <span>Store</span>
           </div>
         </div>
+  {/* 1. sal tillæg styres via Grunddata og anvendes automatisk i beregningen */}
       </div>
     </div>
   );

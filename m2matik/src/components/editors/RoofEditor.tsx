@@ -44,6 +44,9 @@ export const RoofEditor: React.FC<Props> = ({ item, update }) => {
           <span className="absolute left-0">Fladt</span>
           <span className="absolute right-0">45°</span>
         </div>
+        <div className="text-[11px] text-gray-600/90 mt-1">
+          Hældning påvirker prisen (større hældning → højere pris).
+        </div>
       </div>
 
       {/* Kvalitet */}
@@ -75,6 +78,14 @@ export const RoofEditor: React.FC<Props> = ({ item, update }) => {
           <span>Budget</span>
           <span className="mx-auto">Standard</span>
           <span>Eksklusiv</span>
+        </div>
+        <div className="text-[11px] text-gray-600/90 mt-1 space-y-0.5">
+          <p>
+            <strong>Budget:</strong> Ståltag eller bølgeplader.
+          </p>
+          <p>
+            <strong>Eksklusiv:</strong> Teglsten.
+          </p>
         </div>
       </div>
 
