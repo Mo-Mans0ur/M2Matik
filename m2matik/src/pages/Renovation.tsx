@@ -26,7 +26,12 @@ import HeatingEditor from "../components/editors/HeatingEditor";
 import ElectricityEditor from "../components/editors/ElectricityEditor";
 import KitchenEditor from "../components/editors/KitchenEditor";
 import InfoTooltip from "../components/InfoTooltip";
-import { loadProjectMeta, saveProjectMeta } from "../lib/storage";
+import {
+  loadProjectMeta,
+  saveProjectMeta,
+  loadState,
+  saveState,
+} from "../lib/storage";
 import type { ProjectMeta } from "../lib/storage";
 import type { AnyItem, ItemDøreVinduer } from "./renovationTypes";
 import novaPoint from "../assets/pictures/nova_point.png";
@@ -53,7 +58,9 @@ export default function RenovationWithList() {
   // Manuel prisjustering (fjernet)
 
   // Projekt liste med individuelle poster
-  const [items, setItems] = useState<AnyItem[]>([]);
+  const [items, setItems] = useState<AnyItem[]>(
+    () => loadState<AnyItem[]>("state:renovation:items") || []
+  );
 
   // JSON pricing
   const [pricing, setPricing] = useState<JsonData | null>(null);
@@ -81,6 +88,21 @@ export default function RenovationWithList() {
       mounted = false;
     };
   }, []);
+
+  // Restore misc UI flags
+  useEffect(() => {
+    const prev = loadState<{ showMetaEditor?: boolean }>("state:renovation:ui");
+    if (prev && typeof prev.showMetaEditor === "boolean")
+      setShowMetaEditor(prev.showMetaEditor);
+  }, []);
+
+  // Persist items and UI flags on change
+  useEffect(() => {
+    saveState("state:renovation:items", items);
+  }, [items]);
+  useEffect(() => {
+    saveState("state:renovation:ui", { showMetaEditor });
+  }, [showMetaEditor]);
 
   // Hent meta (areal, kælder, 1. sal)
   useEffect(() => {
@@ -502,12 +524,12 @@ export default function RenovationWithList() {
         const cnt = Math.max(0, doorWin.count || 0);
         const row = pricing?.base?.["døreOgVinduer"];
         let unit = baseWith(row, 1, interpFaktor(qIdx, row));
-  // Apply size factor: 0=small(0.8), 1=medium(1.0), 2=large(1.5)
+        // Apply size factor: 0=small(0.8), 1=medium(1.0), 2=large(1.5)
         const sizeIdx = Math.max(
           0,
           Math.min(2, Math.round(doorWin.sizeScale ?? 1))
         );
-  const sizeFactor = sizeIdx === 0 ? 0.8 : sizeIdx === 2 ? 1.5 : 1.0;
+        const sizeFactor = sizeIdx === 0 ? 0.8 : sizeIdx === 2 ? 1.5 : 1.0;
         unit = Math.round(unit * sizeFactor);
         const picks: string[] = [];
         if (operation === "newHole") picks.push("nyt", "hul");
@@ -522,7 +544,7 @@ export default function RenovationWithList() {
             unit
           );
         }
-  price += Math.round(unit) * cnt;
+        price += Math.round(unit) * cnt;
         break;
       }
       case "terrasse": {
@@ -589,7 +611,9 @@ export default function RenovationWithList() {
               .replace(/[^a-z0-9_.-]/g, "");
           const nn = norm(name);
           return list.some((e) => {
-            const en = norm(String((e as unknown as { name?: string }).name || ""));
+            const en = norm(
+              String((e as unknown as { name?: string }).name || "")
+            );
             return en.includes(nn) || nn.includes(en);
           });
         };
@@ -619,11 +643,11 @@ export default function RenovationWithList() {
       case "walls": {
         const w = it as Extract<AnyItem, { typeId: "walls" }>;
         const baseRow = pricing?.base?.["walls"];
-  let base = baseWith(baseRow, AREA, 1);
-  // Scope multiplier: 0=mindre(0.8), 1=standard(1.0), 2=meget(1.3)
-  const scope = (w.scope ?? 1) as 0 | 1 | 2;
-  const scopeFactor = scope === 0 ? 0.8 : scope === 2 ? 1.3 : 1.0;
-  base = Math.round(base * scopeFactor);
+        let base = baseWith(baseRow, AREA, 1);
+        // Scope multiplier: 0=mindre(0.8), 1=standard(1.0), 2=meget(1.3)
+        const scope = (w.scope ?? 1) as 0 | 1 | 2;
+        const scopeFactor = scope === 0 ? 0.8 : scope === 2 ? 1.3 : 1.0;
+        base = Math.round(base * scopeFactor);
         const picks: string[] = [];
         // Map UI toggles to JSON extras naming (normalized, with synonyms)
         if (w.nyLet)

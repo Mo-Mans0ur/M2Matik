@@ -95,6 +95,30 @@
       "faktorNormal": 1,
       "faktorHøj": 1,
       "beregning": "kun_m2"
+    },
+    "tilbygning": {
+      "startpris": 200000,
+      "m2pris": 20000,
+      "faktorLav": 0.8,
+      "faktorNormal": 1,
+      "faktorHøj": 1.6,
+      "beregning": "faktor_kun_pa_m2"
+    },
+    "kælder": {
+      "startpris": 300000,
+      "m2pris": 15000,
+      "faktorLav": 0.9,
+      "faktorNormal": 1,
+      "faktorHøj": 1.2,
+      "beregning": "faktor_kun_pa_m2"
+    },
+    "1. sal": {
+      "startpris": 0,
+      "m2pris": 0,
+      "faktorLav": 1,
+      "faktorNormal": 1,
+      "faktorHøj": 1,
+      "beregning": "faktor_kun_pa_m2"
     }
   },
   "extras": {
@@ -296,6 +320,85 @@
         "name": "kvist",
         "kind": "per_unit",
         "amount": 80000
+      }
+    ],
+    "tilbygning": [
+      {
+        "name": "tillæg badeværelse",
+        "kind": "fixed",
+        "amount": 200000
+      },
+      {
+        "name": "tilllæg køkken",
+        "kind": "fixed",
+        "amount": 250000
+      },
+      {
+        "name": "tillæg kældertrappe",
+        "kind": "fixed",
+        "amount": 200000
+      },
+      {
+        "name": "beplatning  / belægning mv",
+        "kind": "fixed",
+        "amount": 50000
+      },
+      {
+        "name": "beplatning  / belægning mv (pr. m²)",
+        "kind": "per_m2",
+        "amount": 2000
+      }
+    ],
+    "tilbygning_rådgivning": [
+      {
+        "name": "skitser",
+        "kind": "fixed",
+        "amount": 12000
+      },
+      {
+        "name": "skitser (pr. m²)",
+        "kind": "per_m2",
+        "amount": 100
+      },
+      {
+        "name": "Myndighedsansøgning",
+        "kind": "fixed",
+        "amount": 16000
+      },
+      {
+        "name": "Myndighedsansøgning (pr. m²)",
+        "kind": "per_m2",
+        "amount": 200
+      },
+      {
+        "name": "hovedprojekt",
+        "kind": "fixed",
+        "amount": 20000
+      },
+      {
+        "name": "hovedprojekt (pr. m²)",
+        "kind": "per_m2",
+        "amount": 300
+      },
+      {
+        "name": "statisk beregninger",
+        "kind": "fixed",
+        "amount": 25000
+      },
+      {
+        "name": "statisk beregninger (pr. m²)",
+        "kind": "per_m2",
+        "amount": 300
+      },
+      {
+        "name": "tilsyn og byggeledelse",
+        "kind": "fixed",
+        "amount": 10000
+      },
+      {
+        "name": "tilsyn og byggeledelse (pr. m²)",
+        "kind": "per_m2",
+        "amount": 1000
       }
     ]
   },

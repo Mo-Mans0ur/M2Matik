@@ -33,3 +33,23 @@ export function loadProjectMeta(): ProjectMeta | null {
 export function clearProjectMeta() {
   localStorage.removeItem(KEY);
 }
+
+// Generic page state persistence
+export function saveState(key: string, data: unknown) {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (err) {
+    console.warn("saveState failed", key, err);
+  }
+}
+
+export function loadState<T = unknown>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    return JSON.parse(raw) as T;
+  } catch (err) {
+    console.warn("loadState failed", key, err);
+    return null;
+  }
+}

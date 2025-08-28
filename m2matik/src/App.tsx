@@ -18,6 +18,7 @@ export default function App() {
         <Route path="/groundtype/addition" element={<Addition />} />
         <Route path="/groundtype/renovation" element={<Renovation />} />
         <Route path="/groundtype/newhouse" element={<NewHouse />} />
+        {/** Tilbygning is now integrated into Addition; legacy route removed **/}
         {/* Back-compat aliases for old /house URLs */}
         <Route path="/house" element={<GroundType />} />
         <Route path="/house/addition" element={<Addition />} />

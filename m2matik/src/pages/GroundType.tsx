@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import BackButton from "../components/BackButton";
 
 function HouseOutline({ className = "w-16 h-16" }: { className?: string }) {
   return (
@@ -91,6 +92,9 @@ export default function GroundType() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4 py-8">
+      <div className="w-full max-w-4xl -mt-2 mb-2">
+        <BackButton to="/" />
+      </div>
       <h1 className="text-2xl sm:text-3xl font-bold mb-6 sm:mb-8 text-center">
         Hvad vil du have lavet?
       </h1>

@@ -105,7 +105,7 @@ export const DoorWindowEditor: React.FC<Props> = ({ item, update }) => {
             <span>Store</span>
           </div>
         </div>
-  {/* 1. sal tillæg styres via Grunddata og anvendes automatisk i beregningen */}
+        {/* 1. sal tillæg styres via Grunddata og anvendes automatisk i beregningen */}
       </div>
     </div>
   );

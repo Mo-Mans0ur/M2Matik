@@ -24,6 +24,7 @@ const ROOT = path.join(__dirname, "..");
 // Prefer the new file name if present, otherwise fallback to the original
 const EXCEL_CANDIDATES = [
   // Newest first
+  path.join(ROOT, "public", "data", "priser-til-beregning-5.xlsx"),
   path.join(ROOT, "public", "data", "priser-til-beregning-4.xlsx"),
   path.join(ROOT, "public", "data", "priser til beregning 4.xlsx"),
   path.join(ROOT, "public", "data", "priser-til-beregning-3.xlsx"),
@@ -79,16 +80,16 @@ function toJsonKey(n) {
       return "gulv";
     case "stuk":
       return "stuk";
-  case "indvendigevaegge":
-  case "indvendigevaeg":
-  case "indvendigvaeg":
-  case "indvendigvaegge":
-  case "vaeg":
-  case "vaegge":
+    case "indvendigevaegge":
+    case "indvendigevaeg":
+    case "indvendigvaeg":
+    case "indvendigvaegge":
     case "vaeg":
-  case "vaegindvendig":
-  case "indrevaegge":
-  case "indrevaeg":
+    case "vaegge":
+    case "vaeg":
+    case "vaegindvendig":
+    case "indrevaegge":
+    case "indrevaeg":
       return "walls";
     case "hjepaneler":
     case "hje":
@@ -187,13 +188,13 @@ function main() {
 
     // Determine key mapping
     let key = toJsonKey(n);
-  if (key) {
+    if (key) {
       const startpris = parseDk(startIdx >= 0 ? row[startIdx] : 0);
       const m2pris = parseDk(m2Idx >= 0 ? row[m2Idx] : 0);
       const faktorLav = lavIdx >= 0 ? parseDk(row[lavIdx]) : 1;
       const faktorHøj = hojIdx >= 0 ? parseDk(row[hojIdx]) : 1;
 
-  outBase[key] = {
+      outBase[key] = {
         startpris: Number.isFinite(startpris) ? startpris : 0,
         m2pris: Number.isFinite(m2pris) ? m2pris : 0,
         faktorLav:
@@ -207,8 +208,8 @@ function main() {
             : key === "badeværelse" || key === "toilet"
             ? "kun_start_med_faktor"
             : "faktor_pa_m2_og_start",
-  };
-  currentSection = key; // remember section for subsequent extras lines
+      };
+      currentSection = key; // remember section for subsequent extras lines
       continue;
     }
 
@@ -274,7 +275,9 @@ function main() {
     // Badeværelse/Køkken: ny placering (look across the whole row text)
     if (
       (nAll.includes("placering") || n.includes("placering")) &&
-      (nAll.includes("bad") || nAll.includes("badevrelse") || n.includes("badvrelse"))
+      (nAll.includes("bad") ||
+        nAll.includes("badevrelse") ||
+        n.includes("badvrelse"))
     ) {
       if (startVal > 0)
         pushExtra("badeværelse", {
@@ -292,14 +295,12 @@ function main() {
     }
     if (
       (nAll.includes("placering") || n.includes("placering")) &&
-      (
-        // explicit kitchen mention in any cell text
-        nAll.includes("kkken") ||
+      // explicit kitchen mention in any cell text
+      (nAll.includes("kkken") ||
         // or we are currently inside the kitchen section
         currentSection === "køkken" ||
         // or the line is just a generic "ny placering" without qualifiers
-        n === "nyplacering"
-      )
+        n === "nyplacering")
     ) {
       if (startVal > 0)
         pushExtra("køkken", { name: raw, kind: "fixed", amount: startVal });
@@ -346,12 +347,19 @@ function main() {
     if (n.includes("pris") && n.includes("stik")) {
       const perUnit = unitVal > 0 ? unitVal : m2Val > 0 ? m2Val : startVal;
       if (perUnit > 0)
-        pushExtra("elektriker", { name: "stik", kind: "per_unit", amount: perUnit });
+        pushExtra("elektriker", {
+          name: "stik",
+          kind: "per_unit",
+          amount: perUnit,
+        });
       continue;
     }
 
     // Elektriker: pr afbrydere og udtag (per unit)
-    if ((n.includes("afbrydere") || n.includes("afbryder")) && n.includes("udtag")) {
+    if (
+      (n.includes("afbrydere") || n.includes("afbryder")) &&
+      n.includes("udtag")
+    ) {
       const perUnit = unitVal > 0 ? unitVal : m2Val > 0 ? m2Val : startVal;
       if (perUnit > 0)
         pushExtra("elektriker", {
@@ -362,8 +370,8 @@ function main() {
       continue;
     }
 
-  // Elektriker: tillæg skjulte føringer (fixed and/or per m2)
-  if (n.includes("skjult")) {
+    // Elektriker: tillæg skjulte føringer (fixed and/or per m2)
+    if (n.includes("skjult")) {
       if (startVal > 0)
         pushExtra("elektriker", { name: raw, kind: "fixed", amount: startVal });
       if (m2Val > 0)
@@ -396,12 +404,24 @@ function main() {
     ) {
       const perUnit = unitVal > 0 ? unitVal : 0;
       if (perUnit > 0) {
-        pushExtra("walls", { name: raw || "tillæg dør", kind: "per_unit", amount: perUnit });
+        pushExtra("walls", {
+          name: raw || "tillæg dør",
+          kind: "per_unit",
+          amount: perUnit,
+        });
       } else {
         if (startVal > 0)
-          pushExtra("walls", { name: raw || "tillæg dør", kind: "fixed", amount: startVal });
+          pushExtra("walls", {
+            name: raw || "tillæg dør",
+            kind: "fixed",
+            amount: startVal,
+          });
         if (m2Val > 0)
-          pushExtra("walls", { name: (raw || "tillæg dør") + " (pr. m²)", kind: "per_m2", amount: m2Val });
+          pushExtra("walls", {
+            name: (raw || "tillæg dør") + " (pr. m²)",
+            kind: "per_m2",
+            amount: m2Val,
+          });
       }
       continue;
     }
@@ -439,41 +459,87 @@ function main() {
       continue;
     }
 
-  // Vægge: ny skillevæg (let) and ny bærende væg
+    // Vægge: ny skillevæg (let) and ny bærende væg
     if (nAll.includes("skillevæg") || nAll.includes("skillevaeg")) {
       const perUnit = unitVal > 0 ? unitVal : 0;
       if (perUnit > 0)
-    pushExtra("walls", { name: "ny skillevæg", kind: "per_unit", amount: perUnit });
+        pushExtra("walls", {
+          name: "ny skillevæg",
+          kind: "per_unit",
+          amount: perUnit,
+        });
       else if (startVal > 0)
-    pushExtra("walls", { name: "ny skillevæg", kind: "fixed", amount: startVal });
+        pushExtra("walls", {
+          name: "ny skillevæg",
+          kind: "fixed",
+          amount: startVal,
+        });
       else if (m2Val > 0)
-    pushExtra("walls", { name: "ny skillevæg (pr. m²)", kind: "per_m2", amount: m2Val });
+        pushExtra("walls", {
+          name: "ny skillevæg (pr. m²)",
+          kind: "per_m2",
+          amount: m2Val,
+        });
       continue;
     }
-    if ((nAll.includes("bærende") || nAll.includes("baerende")) && (nAll.includes("væg") || nAll.includes("vaeg") || currentSection === "walls")) {
+    if (
+      (nAll.includes("bærende") || nAll.includes("baerende")) &&
+      (nAll.includes("væg") ||
+        nAll.includes("vaeg") ||
+        currentSection === "walls")
+    ) {
       const perUnit = unitVal > 0 ? unitVal : 0;
       if (perUnit > 0)
-    pushExtra("walls", { name: "ny bærende væg", kind: "per_unit", amount: perUnit });
+        pushExtra("walls", {
+          name: "ny bærende væg",
+          kind: "per_unit",
+          amount: perUnit,
+        });
       else if (startVal > 0)
-    pushExtra("walls", { name: "ny bærende væg", kind: "fixed", amount: startVal });
+        pushExtra("walls", {
+          name: "ny bærende væg",
+          kind: "fixed",
+          amount: startVal,
+        });
       else if (m2Val > 0)
-    pushExtra("walls", { name: "ny bærende væg (pr. m²)", kind: "per_m2", amount: m2Val });
+        pushExtra("walls", {
+          name: "ny bærende væg (pr. m²)",
+          kind: "per_m2",
+          amount: m2Val,
+        });
       continue;
     }
 
     // Vægge: dør i væg (prefer per-unit if available) — also capture 'tillæg dør' within walls section
     if (
-      (nAll.includes("dør") || nAll.includes("dor") || nAll.includes("doer") || nAll.includes("dore")) &&
-      (nAll.includes("væg") || nAll.includes("vaeg") || currentSection === "walls")
+      (nAll.includes("dør") ||
+        nAll.includes("dor") ||
+        nAll.includes("doer") ||
+        nAll.includes("dore")) &&
+      (nAll.includes("væg") ||
+        nAll.includes("vaeg") ||
+        currentSection === "walls")
     ) {
       const perUnit = unitVal > 0 ? unitVal : 0;
       if (perUnit > 0) {
-        pushExtra("walls", { name: "dør i væg", kind: "per_unit", amount: perUnit });
+        pushExtra("walls", {
+          name: "dør i væg",
+          kind: "per_unit",
+          amount: perUnit,
+        });
       } else {
         if (startVal > 0)
-          pushExtra("walls", { name: raw || "dør i væg", kind: "fixed", amount: startVal });
+          pushExtra("walls", {
+            name: raw || "dør i væg",
+            kind: "fixed",
+            amount: startVal,
+          });
         if (m2Val > 0)
-          pushExtra("walls", { name: (raw || "dør i væg") + " (pr. m²)", kind: "per_m2", amount: m2Val });
+          pushExtra("walls", {
+            name: (raw || "dør i væg") + " (pr. m²)",
+            kind: "per_m2",
+            amount: m2Val,
+          });
       }
       continue;
     }
@@ -481,16 +547,31 @@ function main() {
     // Fallback: capture generic 'tillæg dør' as Walls door if not matched above
     if (
       (nAll.includes("tillg") || nAll.includes("tillaeg")) &&
-      (nAll.includes("dør") || nAll.includes("dor") || nAll.includes("doer") || nAll.includes("dore"))
+      (nAll.includes("dør") ||
+        nAll.includes("dor") ||
+        nAll.includes("doer") ||
+        nAll.includes("dore"))
     ) {
       const perUnit = unitVal > 0 ? unitVal : 0;
       if (perUnit > 0) {
-        pushExtra("walls", { name: raw || "tillæg dør", kind: "per_unit", amount: perUnit });
+        pushExtra("walls", {
+          name: raw || "tillæg dør",
+          kind: "per_unit",
+          amount: perUnit,
+        });
       } else {
         if (startVal > 0)
-          pushExtra("walls", { name: raw || "tillæg dør", kind: "fixed", amount: startVal });
+          pushExtra("walls", {
+            name: raw || "tillæg dør",
+            kind: "fixed",
+            amount: startVal,
+          });
         if (m2Val > 0)
-          pushExtra("walls", { name: (raw || "tillæg dør") + " (pr. m²)", kind: "per_m2", amount: m2Val });
+          pushExtra("walls", {
+            name: (raw || "tillæg dør") + " (pr. m²)",
+            kind: "per_m2",
+            amount: m2Val,
+          });
       }
       continue;
     }
@@ -594,22 +675,41 @@ function main() {
   });
   ensure(outExtras, "walls", outExtras["walls"] || []);
   {
-    const names = (outExtras["walls"] || []).map((e) => String(e.name || "").toLowerCase());
+    const names = (outExtras["walls"] || []).map((e) =>
+      String(e.name || "").toLowerCase()
+    );
     if (!names.some((n) => n.includes("skillev"))) {
-      outExtras["walls"].push({ name: "ny skillevæg", kind: "fixed", amount: 30000 });
+      outExtras["walls"].push({
+        name: "ny skillevæg",
+        kind: "fixed",
+        amount: 30000,
+      });
     }
     if (!names.some((n) => n.includes("bærende") || n.includes("baerende"))) {
-      outExtras["walls"].push({ name: "ny bærende væg", kind: "fixed", amount: 60000 });
+      outExtras["walls"].push({
+        name: "ny bærende væg",
+        kind: "fixed",
+        amount: 60000,
+      });
     }
   }
   // If no door-in-wall price was parsed, inject a sensible default so the UI toggle affects price
   {
     const hasDoor = (outExtras["walls"] || []).some((e) => {
       const n = String(e.name || "").toLowerCase();
-      return n.includes("dør") || n.includes("dor") || n.includes("doer") || n.includes("dore");
+      return (
+        n.includes("dør") ||
+        n.includes("dor") ||
+        n.includes("doer") ||
+        n.includes("dore")
+      );
     });
     if (!hasDoor) {
-      outExtras["walls"].push({ name: "tillæg dør", kind: "fixed", amount: 10000 });
+      outExtras["walls"].push({
+        name: "tillæg dør",
+        kind: "fixed",
+        amount: 10000,
+      });
     }
   }
 
@@ -640,10 +740,16 @@ function main() {
   ensure(outExtras, "elektriker", outExtras["elektriker"] || []);
   {
     const hasStik = (outExtras["elektriker"] || []).some((e) =>
-      String(e.name || "").toLowerCase().includes("stik")
+      String(e.name || "")
+        .toLowerCase()
+        .includes("stik")
     );
     if (!hasStik) {
-      outExtras["elektriker"].push({ name: "stik", kind: "per_unit", amount: 1000 });
+      outExtras["elektriker"].push({
+        name: "stik",
+        kind: "per_unit",
+        amount: 1000,
+      });
     }
   }
   {
@@ -651,11 +757,11 @@ function main() {
       const n = String(e.name || "").toLowerCase();
       return n.includes("afbrydere") || n.includes("udtag");
     });
-  if (!hasOutlets) {
+    if (!hasOutlets) {
       outExtras["elektriker"].push({
         name: "afbrydere og udtag",
         kind: "per_unit",
-    amount: 1600,
+        amount: 1600,
       });
     }
   }
@@ -664,7 +770,9 @@ function main() {
   ensure(outExtras, "køkken", outExtras["køkken"] || []);
   {
     const hasPlacering = (outExtras["køkken"] || []).some((e) =>
-      String(e.name || "").toLowerCase().includes("placering")
+      String(e.name || "")
+        .toLowerCase()
+        .includes("placering")
     );
     if (!hasPlacering) {
       outExtras["køkken"].push({
@@ -679,11 +787,20 @@ function main() {
   const dedupePlacering = (cat) => {
     const list = outExtras[cat];
     if (!Array.isArray(list) || list.length === 0) return;
-    const isPlac = (e) => String(e.name || "").toLowerCase().includes("placering");
+    const isPlac = (e) =>
+      String(e.name || "")
+        .toLowerCase()
+        .includes("placering");
     const fixed = list.filter((e) => e.kind === "fixed" && isPlac(e));
     const perM2 = list.filter((e) => e.kind === "per_m2" && isPlac(e));
-    const bestFixed = fixed.reduce((a, b) => (b.amount > (a?.amount ?? -1) ? b : a), null);
-    const bestPerM2 = perM2.reduce((a, b) => (b.amount > (a?.amount ?? -1) ? b : a), null);
+    const bestFixed = fixed.reduce(
+      (a, b) => (b.amount > (a?.amount ?? -1) ? b : a),
+      null
+    );
+    const bestPerM2 = perM2.reduce(
+      (a, b) => (b.amount > (a?.amount ?? -1) ? b : a),
+      null
+    );
     const others = list.filter(
       (e) => !(isPlac(e) && (e.kind === "fixed" || e.kind === "per_m2"))
     );
@@ -751,10 +868,16 @@ function main() {
             (nAll2.includes("dor") || nAll2.includes("doer"))
           ) {
             // pick the largest numeric value on this row
-            const nums = row.map((c) => parseDk(c)).filter((n) => Number.isFinite(n) && n > 0);
+            const nums = row
+              .map((c) => parseDk(c))
+              .filter((n) => Number.isFinite(n) && n > 0);
             const val = nums.length ? Math.max(...nums) : 0;
             if (val > 0) {
-              outExtras["walls"].push({ name: "tillæg dør", kind: "fixed", amount: val });
+              outExtras["walls"].push({
+                name: "tillæg dør",
+                kind: "fixed",
+                amount: val,
+              });
               found.ok = true;
               break;
             }
@@ -881,6 +1004,227 @@ function main() {
           );
         }
       }
+    }
+  }
+
+  // ---- Optional sheet 'Tilbygning' ----
+  // Expect columns: arbejdstype, start pris, stk eller m2 pris, laveste kvalitet faktor, højeste kvalitet faktor
+  // Rows of interest:
+  //  - Base types: 'tilbygning', 'kælder', '1. sal'
+  //  - Add-ons: 'tillæg badeværelse', 'tillæg køkken', 'tillæg kældertrappe', 'belægning/beplantning'
+  //  - Advisory: 'skitser', 'myndighed', 'hovedprojekt', 'statik', 'tilsyn'
+  const tilbygSheetName = (wb.SheetNames || []).find((n) => {
+    const s = String(n || "").toLowerCase();
+    return s.includes("tilbygning");
+  });
+  if (tilbygSheetName) {
+    try {
+      const wsT = wb.Sheets[tilbygSheetName];
+      const AT = XLSX.utils.sheet_to_json(wsT, { header: 1, defval: "" });
+      if (AT && AT.length) {
+        // Score-based header detection within the first rows
+        let headerRow = 0;
+        let bestScore = -1;
+        const headMax = Math.min(12, AT.length);
+        for (let i = 0; i < headMax; i++) {
+          const row = AT[i] || [];
+          const rowTxt = String(row.join(" ")).toLowerCase();
+          const nTxt = norm(rowTxt);
+          let score = 0;
+          if (nTxt.includes(norm("arbejdstype")) || nTxt.includes(norm("type")))
+            score += 2;
+          if (
+            ["startpris", "start pris", "opstart", "basis"].some((s) =>
+              nTxt.includes(norm(s))
+            )
+          )
+            score += 2;
+          if (
+            [
+              "stk eller m2 pris",
+              "stk eller m2 priser",
+              "stk/m2 pris",
+              "m2 pris",
+              "pris pr m2",
+              "pr m2",
+              "kr/m2",
+            ].some((s) => nTxt.includes(norm(s)))
+          )
+            score += 2;
+          if (nTxt.includes("m2") || nTxt.includes("stk")) score += 1;
+          if (nTxt.includes(norm("lav"))) score += 1;
+          if (nTxt.includes(norm("høj")) || nTxt.includes(norm("hoj")))
+            score += 1;
+          if (score > bestScore) {
+            bestScore = score;
+            headerRow = i;
+          }
+        }
+        const headers = AT[headerRow] || [];
+        const idxOf = (cands) => {
+          const C = cands.map((s) => norm(s));
+          for (let j = 0; j < headers.length; j++) {
+            const h = norm(String(headers[j] ?? ""));
+            if (C.some((c) => h.includes(c))) return j;
+          }
+          return -1;
+        };
+        const cName = idxOf(["arbejdstype", "arbejde", "type"]);
+        const cStart = idxOf(["startpris", "start pris", "opstart", "basis"]);
+        const cM2 = idxOf([
+          // Common variants
+          "stk eller m2 pris",
+          "stk eller m2 priser",
+          "stk/m2 pris",
+          "stk el m2 pris",
+          "stk eller m2",
+          "stk eller m2priser",
+          "stkeller m2 pris",
+          "m2 pris",
+          "pris pr m2",
+          "pris/m2",
+          "pr m2",
+          "kr/m2",
+          "krprm2",
+          "enhedspris",
+        ]);
+        const cLav = idxOf([
+          "laveste kvalitet faktor",
+          "laveste kvalitet",
+          "laveste",
+          "lav",
+          "low",
+        ]);
+        const cHoj = idxOf([
+          "højeste kvalitet faktor",
+          "hojeste kvalitet faktor",
+          "højeste kvalitet",
+          "hojeste kvalitet",
+          "højeste",
+          "hojeste",
+          "høj",
+          "hoj",
+          "high",
+        ]);
+
+        // Ensure containers
+        ensure(outExtras, "tilbygning", outExtras["tilbygning"] || []);
+        ensure(
+          outExtras,
+          "tilbygning_rådgivning",
+          outExtras["tilbygning_rådgivning"] || []
+        );
+
+        for (let i = headerRow + 1; i < AT.length; i++) {
+          const r = AT[i] || [];
+          let raw = String(cName >= 0 ? r[cName] : r[0] || "").trim();
+          if (!raw) {
+            // try to use any non-empty cell in the row as a label
+            const firstNonEmpty = (
+              r.find((x) => String(x || "").trim()) || ""
+            ).toString();
+            raw = String(firstNonEmpty).trim();
+          }
+          if (!raw) continue;
+          const nAll = norm(String(r.join(" ") || ""));
+          const nameN = norm(raw);
+          const startVal = parseDk(cStart >= 0 ? r[cStart] : 0);
+          const m2Val = parseDk(cM2 >= 0 ? r[cM2] : 0);
+          const lav = parseDk(cLav >= 0 ? r[cLav] : 1) || 1;
+          const hoj = parseDk(cHoj >= 0 ? r[cHoj] : 1) || 1;
+
+          // Base types
+          const isTilbyg = nameN === norm("tilbygning");
+          const isKaelder =
+            nameN === norm("kælder") || nameN === norm("kaelder");
+          const is1Sal =
+            nameN === norm("1. sal") ||
+            nameN === norm("1 sal") ||
+            nameN === "1sal";
+          if (isTilbyg || isKaelder || is1Sal) {
+            const key = isTilbyg
+              ? "tilbygning"
+              : isKaelder
+              ? "kælder"
+              : "1. sal";
+            outBase[key] = {
+              startpris: Number.isFinite(startVal) ? startVal : 0,
+              m2pris: Number.isFinite(m2Val) ? m2Val : 0,
+              faktorLav: Number.isFinite(lav) && lav !== 0 ? lav : 1,
+              faktorNormal: 1,
+              faktorHøj: Number.isFinite(hoj) && hoj !== 0 ? hoj : 1,
+              // Apply factor only to m2 part as specified
+              beregning: "faktor_kun_pa_m2",
+            };
+            continue;
+          }
+
+          // Add-ons
+          const addonMatch =
+            // Badeværelse
+            nAll.includes(norm("badeværelse")) ||
+            nAll.includes(norm("badevaerelse")) ||
+            // Køkken (any form of køk/kkken)
+            nAll.includes(norm("køkken")) ||
+            nAll.includes("kokken") ||
+            nAll.includes("kkken") ||
+            // Kældertrappe
+            nAll.includes(norm("kældertrappe")) ||
+            nAll.includes("kaeldertrappe") ||
+            (nAll.includes("kaelder") && nAll.includes("trappe")) ||
+            nAll.includes(norm("trappe")) ||
+            // Belægning / beplantning (cover misspelling beplatning)
+            nAll.includes(norm("belægning")) ||
+            nAll.includes("belaegning") ||
+            nAll.includes("beplantning") ||
+            nAll.includes("beplatning");
+          if (addonMatch) {
+            if (startVal > 0)
+              outExtras["tilbygning"].push({
+                name: raw,
+                kind: "fixed",
+                amount: startVal,
+              });
+            if (m2Val > 0)
+              outExtras["tilbygning"].push({
+                name: raw + " (pr. m²)",
+                kind: "per_m2",
+                amount: m2Val,
+              });
+            continue;
+          }
+
+          // Advisory items
+          const isAdvisory =
+            nAll.includes(norm("skitser")) ||
+            nAll.includes(norm("myndighed")) ||
+            nAll.includes(norm("hovedprojekt")) ||
+            nAll.includes(norm("statik")) ||
+            nAll.includes(norm("statisk beregninger")) ||
+            nAll.includes(norm("statiskberegninger")) ||
+            nAll.includes(norm("tilsyn"));
+          if (isAdvisory) {
+            if (startVal > 0)
+              outExtras["tilbygning_rådgivning"].push({
+                name: raw,
+                kind: "fixed",
+                amount: startVal,
+              });
+            if (m2Val > 0)
+              outExtras["tilbygning_rådgivning"].push({
+                name: raw + " (pr. m²)",
+                kind: "per_m2",
+                amount: m2Val,
+              });
+            continue;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn(
+        "[generate-prices] Failed to parse 'Tilbygning' sheet:",
+        err?.message || err
+      );
     }
   }
 

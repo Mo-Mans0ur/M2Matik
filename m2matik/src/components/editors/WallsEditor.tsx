@@ -16,7 +16,9 @@ export const WallsEditor: React.FC<Props> = ({ item, update }) => (
         max={2}
         step={1}
         value={item.scope ?? 1}
-        onChange={(e) => update("scope", parseInt(e.target.value, 10) as 0 | 1 | 2)}
+        onChange={(e) =>
+          update("scope", parseInt(e.target.value, 10) as 0 | 1 | 2)
+        }
         className="w-full accent-blue-500 h-2 rounded-lg appearance-none cursor-pointer"
         aria-label="Omfang af indvendige vægge"
       />
@@ -34,7 +36,7 @@ export const WallsEditor: React.FC<Props> = ({ item, update }) => (
           checked={!!item.nyLet}
           onChange={(e) => update("nyLet", e.target.checked)}
         />
-  Ny skillevæg
+        Ny skillevæg
       </label>
       <label className="inline-flex items-center gap-2">
         <input
@@ -43,7 +45,7 @@ export const WallsEditor: React.FC<Props> = ({ item, update }) => (
           checked={!!item.nyBærende}
           onChange={(e) => update("nyBærende", e.target.checked)}
         />
-  Ny bærende væg
+        Ny bærende væg
       </label>
       <label className="inline-flex items-center gap-2">
         <input
