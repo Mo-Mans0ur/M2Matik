@@ -1,9 +1,10 @@
 // m2matik/src/pages/FrontPage.tsx
-
+import logoSrc from "../assets/pictures/m2matik-logo.png";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { loadProjectMeta, saveProjectMeta } from "../lib/storage";
 import type { PropertyType, ProjectMeta } from "../lib/storage";
+// ...existing code...
 
 import {
   Select,
@@ -62,7 +63,10 @@ export default function FrontPage() {
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center px-3 sm:px-4 py-6">
-      <div className="w-full max-w-2xl bg-white rounded-2xl shadow p-5 sm:p-6 space-y-6">
+  <div className="w-full max-w-2xl bg-white rounded-2xl shadow p-5 sm:p-6 space-y-6">
+        <div className="flex flex-col items-center mb-2">
+          <img src={logoSrc} alt="m2matik logo" className="mb-4 w-40 mx-auto" />
+        </div>
         <h1 className="text-2xl sm:text-3xl font-bold text-center">
           Start beregning
         </h1>
