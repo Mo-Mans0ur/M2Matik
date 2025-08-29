@@ -125,7 +125,8 @@ export default function Addition() {
     const kaelderFactors = [0.9, 0.9, 1, 1.2, 1.2];
     const kaelderFactor = kaelderFactors[qualityIdx] ?? 1;
     const kaelderPrice = Math.round(kaelderStart * kaelderFactor + kaelderM2 * area * kaelderFactor);
-    const kaeldertrappePrice = 200000;
+  const kaeldertrappeBase = 200000;
+  const kaeldertrappePrice = Math.round(kaeldertrappeBase * kaelderFactor);
     if (addons.kaelder && addons.kaeldertrappe) {
       const pickedMatchesBoth = Object.keys(addons)
         .filter(
