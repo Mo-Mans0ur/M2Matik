@@ -5,6 +5,14 @@ import { useEffect, useState } from "react";
 import { loadProjectMeta, saveProjectMeta } from "../lib/storage";
 import type { PropertyType, ProjectMeta } from "../lib/storage";
 
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "../components/ui/select";
+
 /**
  * FrontPage component: collects basic property info, pre-fills from storage,
  * and starts the calculation flow by saving metadata and navigating onward.
@@ -64,15 +72,34 @@ export default function FrontPage() {
             <span className="text-xs sm:text-sm text-gray-600">
               Ejendomstype
             </span>
-            <select
-              className="border rounded-lg px-3 py-2"
+            <Select
               value={propertyType}
-              onChange={(e) => setPropertyType(e.target.value as PropertyType)}
+              onValueChange={(v) => setPropertyType(v as PropertyType)}
             >
-              <option value="house">Hus</option>
-              <option value="apartment">Lejlighed</option>
-              <option value="summerhouse">Sommerhus</option>
-            </select>
+              <SelectTrigger className="w-full rounded-lg border border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-base font-semibold text-slate-800 bg-white">
+                <SelectValue placeholder="Vælg ejendomstype" />
+              </SelectTrigger>
+              <SelectContent className="bg-white rounded-lg shadow-lg border border-gray-200 mt-1">
+                <SelectItem
+                  value="house"
+                  className="flex items-center px-4 py-2 cursor-pointer text-base rounded-lg transition-colors hover:bg-blue-50 focus:bg-blue-100 focus:outline-none"
+                >
+                  <span className="font-medium text-slate-800">Hus</span>
+                </SelectItem>
+                <SelectItem
+                  value="apartment"
+                  className="flex items-center px-4 py-2 cursor-pointer text-base rounded-lg transition-colors hover:bg-blue-50 focus:bg-blue-100 focus:outline-none"
+                >
+                  <span className="font-medium text-slate-800">Lejlighed</span>
+                </SelectItem>
+                <SelectItem
+                  value="summerhouse"
+                  className="flex items-center px-4 py-2 cursor-pointer text-base rounded-lg transition-colors hover:bg-blue-50 focus:bg-blue-100 focus:outline-none"
+                >
+                  <span className="font-medium text-slate-800">Sommerhus</span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </label>
 
           <label className="flex flex-col gap-1">

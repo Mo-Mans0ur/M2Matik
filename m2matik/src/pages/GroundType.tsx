@@ -111,7 +111,7 @@ export default function GroundType() {
           className="group bg-white hover:bg-gray-50 text-gray-900 px-5 py-6 rounded-xl shadow border border-gray-200 text-lg sm:text-xl flex flex-col items-center gap-3"
         >
           <AdditionIcon />
-          <span className="font-medium">Tilbyggeri</span>
+          <span className="font-medium">Tilbygning</span>
         </button>
         <button
           onClick={() => navigate("/groundtype/newhouse")}
