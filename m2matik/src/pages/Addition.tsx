@@ -122,7 +122,8 @@ export default function Addition() {
     // Excel: startpris 300.000, m2pris 15.000, laveste faktor 0.9, højeste 1.2
     const kaelderStart = 300000;
     const kaelderM2 = 15000;
-    const kaelderFactors = [0.9, 0.9, 1, 1.2, 1.2];
+  // Interpolated factors for 5 levels: laveste, low-mid, standard, high-mid, højeste
+  const kaelderFactors = [0.94, 0.97, 1, 1.06, 1.12];
     const kaelderFactor = kaelderFactors[qualityIdx] ?? 1;
     const kaelderPrice = Math.round(kaelderStart * kaelderFactor + kaelderM2 * area * kaelderFactor);
   const kaeldertrappeBase = 200000;
