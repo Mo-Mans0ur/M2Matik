@@ -13,6 +13,7 @@ import {
   applyPostnr,
   applyEscalation,
   extrasTotal,
+  baseTotal,
 } from "../pricing/json";
 import { formatKr, smartRound } from "./renovationTypes";
 import {
@@ -131,11 +132,27 @@ export default function Addition() {
     );
   }, [pricing, area, addons]);
 
-  // Calculate base subtotal using startpris and m2pris
+  // Calculate base subtotal using 5 quality levels
   const baseSubtotal = useMemo(() => {
+    const qualityFactors = [0.8, 0.9, 1, 1.3, 1.6]; // Example: adjust as needed
     if (!baseRow) return 0;
-    return (baseRow.startpris || 0) + (baseRow.m2pris || 0) * area;
-  }, [baseRow, area]);
+    const factor = qualityFactors[qualityIdx] ?? 1;
+    const sqm = Math.max(0, area);
+    switch (baseRow.beregning) {
+      case "faktor_kun_pa_start":
+        return Math.max(0, Math.round(baseRow.startpris * factor + baseRow.m2pris * sqm));
+      case "faktor_kun_pa_m2":
+        return Math.max(0, Math.round(baseRow.startpris + baseRow.m2pris * sqm * factor));
+      case "kun_start_med_faktor":
+        return Math.max(0, Math.round(baseRow.startpris * factor));
+      case "kun_start":
+        return Math.max(0, Math.round(baseRow.startpris));
+      case "kun_m2":
+        return Math.max(0, Math.round(baseRow.m2pris * sqm));
+      default:
+        return Math.max(0, Math.round(baseRow.startpris + baseRow.m2pris * sqm * factor));
+    }
+  }, [baseRow, area, qualityIdx]);
 
   // Quality text helper
   const qualityText = ["Basis", "Basis", "Standard", "Eksklusiv", "Eksklusiv"][
