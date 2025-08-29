@@ -118,9 +118,16 @@ export default function Addition() {
   const addonsTotal = useMemo(() => {
     if (!pricing) return 0;
     // If both kælder and kældertrappe are selected, use fixed sum
+    // Kælder price: dynamic based on area and quality factor
+    // Excel: startpris 300.000, m2pris 15.000, laveste faktor 0.9, højeste 1.2
+    const kaelderStart = 300000;
+    const kaelderM2 = 15000;
+    const kaelderFactors = [0.9, 0.9, 1, 1.2, 1.2];
+    const kaelderFactor = kaelderFactors[qualityIdx] ?? 1;
+    const kaelderPrice = Math.round(kaelderStart * kaelderFactor + kaelderM2 * area * kaelderFactor);
+    const kaeldertrappePrice = 200000;
     if (addons.kaelder && addons.kaeldertrappe) {
-      // Remove their matches from pickedMatches so they're not double counted
-      const pickedMatches = Object.keys(addons)
+      const pickedMatchesBoth = Object.keys(addons)
         .filter(
           (id) => addons[id] && id !== "kaelder" && id !== "kaeldertrappe"
         )
@@ -128,10 +135,29 @@ export default function Addition() {
           const opt = ADDON_OPTIONS.find((o) => o.id === id);
           return opt ? opt.match : [];
         });
-      return (
-        500000 +
-        extrasTotal(pricing.extras?.["tilbygning"] || [], area, pickedMatches)
-      );
+      return kaelderPrice + kaeldertrappePrice + extrasTotal(pricing.extras?.["tilbygning"] || [], area, pickedMatchesBoth);
+    }
+    if (addons.kaelder) {
+      const pickedMatchesK = Object.keys(addons)
+        .filter(
+          (id) => addons[id] && id !== "kaelder"
+        )
+        .flatMap((id) => {
+          const opt = ADDON_OPTIONS.find((o) => o.id === id);
+          return opt ? opt.match : [];
+        });
+      return kaelderPrice + extrasTotal(pricing.extras?.["tilbygning"] || [], area, pickedMatchesK);
+    }
+    if (addons.kaeldertrappe) {
+      const pickedMatchesT = Object.keys(addons)
+        .filter(
+          (id) => addons[id] && id !== "kaeldertrappe"
+        )
+        .flatMap((id) => {
+          const opt = ADDON_OPTIONS.find((o) => o.id === id);
+          return opt ? opt.match : [];
+        });
+      return kaeldertrappePrice + extrasTotal(pricing.extras?.["tilbygning"] || [], area, pickedMatchesT);
     }
     // Otherwise, normal calculation
     const pickedMatches = Object.keys(addons)
@@ -145,7 +171,7 @@ export default function Addition() {
       area,
       pickedMatches
     );
-  }, [pricing, area, addons]);
+  }, [pricing, area, addons, qualityIdx]);
 
   // Calculate base subtotal using 5 quality levels
   const baseSubtotal = useMemo(() => {
