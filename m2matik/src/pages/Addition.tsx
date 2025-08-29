@@ -13,7 +13,6 @@ import {
   applyPostnr,
   applyEscalation,
   extrasTotal,
-  
 } from "../pricing/json";
 import { formatKr, smartRound } from "./renovationTypes";
 import {
@@ -118,7 +117,23 @@ export default function Addition() {
   // Compute add-ons total from extras category "tilbygning"
   const addonsTotal = useMemo(() => {
     if (!pricing) return 0;
-    // Instead of passing IDs, pass all match strings for checked add-ons
+    // If both kælder and kældertrappe are selected, use fixed sum
+    if (addons.kaelder && addons.kaeldertrappe) {
+      // Remove their matches from pickedMatches so they're not double counted
+      const pickedMatches = Object.keys(addons)
+        .filter(
+          (id) => addons[id] && id !== "kaelder" && id !== "kaeldertrappe"
+        )
+        .flatMap((id) => {
+          const opt = ADDON_OPTIONS.find((o) => o.id === id);
+          return opt ? opt.match : [];
+        });
+      return (
+        500000 +
+        extrasTotal(pricing.extras?.["tilbygning"] || [], area, pickedMatches)
+      );
+    }
+    // Otherwise, normal calculation
     const pickedMatches = Object.keys(addons)
       .filter((id) => addons[id])
       .flatMap((id) => {
@@ -394,6 +409,8 @@ export default function Addition() {
                     label="Base"
                     value={formatKr(smartRound(baseSubtotal))}
                   />
+                  {/* Show combined kælder + kældertrappe price if both are selected */}
+                  {/* No separate row for kælder + kældertrappe, only included in total */}
                   <Row
                     label="Tilvalg"
                     value={formatKr(smartRound(addonsTotal))}
