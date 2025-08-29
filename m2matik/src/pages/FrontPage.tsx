@@ -118,38 +118,40 @@ export default function FrontPage() {
 
           <label className="flex flex-col gap-1">
             <span className="text-xs sm:text-sm text-gray-600">Postnummer</span>
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={4}
-              className="border rounded-lg px-3 py-2 tracking-widest"
-              value={postcode}
-              onChange={(e) =>
-                setPostcode(e.target.value.replace(/[^0-9]/g, "").slice(0, 4))
-              }
-              placeholder="0000"
-            />
-          </label>
-
-          <label className="inline-flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              className="w-5 h-5 accent-blue-600"
-              checked={basement}
-              onChange={(e) => setBasement(e.target.checked)}
-            />
-            Kælder
-          </label>
-
-          <label className="inline-flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              className="w-5 h-5 accent-blue-600"
-              checked={firstFloor}
-              onChange={(e) => setFirstFloor(e.target.checked)}
-            />
-            1. sal
+            <div className="flex flex-row items-center gap-4">
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={4}
+                className="border rounded-lg px-3 py-2 tracking-widest flex-1"
+                value={postcode}
+                onChange={(e) =>
+                  setPostcode(e.target.value.replace(/[^0-9]/g, "").slice(0, 4))
+                }
+                placeholder="0000"
+              />
+              <div className="flex gap-4">
+                <label className="flex items-center gap-2 text-sm min-w-[80px]">
+                  <input
+                    type="checkbox"
+                    className="w-5 h-5 accent-blue-600"
+                    checked={basement}
+                    onChange={(e) => setBasement(e.target.checked)}
+                  />
+                  <span className="leading-5">Kælder</span>
+                </label>
+                <label className="flex items-center gap-2 text-sm min-w-[80px]">
+                  <input
+                    type="checkbox"
+                    className="w-5 h-5 accent-blue-600"
+                    checked={firstFloor}
+                    onChange={(e) => setFirstFloor(e.target.checked)}
+                  />
+                  <span className="leading-5">1. sal</span>
+                </label>
+              </div>
+            </div>
           </label>
         </div>
 
