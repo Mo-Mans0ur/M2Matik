@@ -13,7 +13,7 @@ import {
   applyPostnr,
   applyEscalation,
   extrasTotal,
-  baseTotal,
+  
 } from "../pricing/json";
 import { formatKr, smartRound } from "./renovationTypes";
 import {
@@ -140,9 +140,15 @@ export default function Addition() {
     const sqm = Math.max(0, area);
     switch (baseRow.beregning) {
       case "faktor_kun_pa_start":
-        return Math.max(0, Math.round(baseRow.startpris * factor + baseRow.m2pris * sqm));
+        return Math.max(
+          0,
+          Math.round(baseRow.startpris * factor + baseRow.m2pris * sqm)
+        );
       case "faktor_kun_pa_m2":
-        return Math.max(0, Math.round(baseRow.startpris + baseRow.m2pris * sqm * factor));
+        return Math.max(
+          0,
+          Math.round(baseRow.startpris + baseRow.m2pris * sqm * factor)
+        );
       case "kun_start_med_faktor":
         return Math.max(0, Math.round(baseRow.startpris * factor));
       case "kun_start":
@@ -150,7 +156,10 @@ export default function Addition() {
       case "kun_m2":
         return Math.max(0, Math.round(baseRow.m2pris * sqm));
       default:
-        return Math.max(0, Math.round(baseRow.startpris + baseRow.m2pris * sqm * factor));
+        return Math.max(
+          0,
+          Math.round(baseRow.startpris + baseRow.m2pris * sqm * factor)
+        );
     }
   }, [baseRow, area, qualityIdx]);
 
